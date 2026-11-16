@@ -40,6 +40,41 @@ const Art = (() => {
   /* ---------------- shared anime face ---------------- */
   const FACE = 'M92 140 C92 84 208 84 208 140 C208 186 190 214 150 238 C110 214 92 186 92 140Z';
 
+  // Fox-eye makeup look: almond eye with a lifted outer corner, long sharp
+  // winged liner, a pointed inner-corner flick, and smoky lower liner.
+  function foxEye(o, cx, sd, Y, ink, ex, gid) {
+    const X = (dx) => (cx + sd * dx).toFixed(1); // dx > 0 points toward the outer corner
+    if (ex === 'happy') {
+      return `<path d="M${X(-18)} ${Y + 4} C${X(-8)} ${Y - 9} ${X(8)} ${Y - 10} ${X(20)} ${Y - 2}" stroke="${o.shadow}" stroke-width="10" opacity=".6" fill="none" stroke-linecap="round"/>
+        <path d="M${X(-18)} ${Y + 4} C${X(-8)} ${Y - 7} ${X(8)} ${Y - 8} ${X(20)} ${Y - 2} L${X(30)} ${Y - 14} L${X(21)} ${Y + 2} C${X(8)} ${Y - 4} ${X(-8)} ${Y - 3} ${X(-16)} ${Y + 5}Z" fill="${ink}"/>
+        <path d="M${X(-16)} ${Y + 3} L${X(-26)} ${Y + 9} L${X(-14)} ${Y + 7}Z" fill="${ink}"/>`;
+    }
+    const h = o.eyeH || 22;
+    const slant = ex === 'angry' ? 7 : ex === 'determined' ? 4 : 0;
+    const top = Y - h / 2;
+    // almond outline: inner corner low, outer corner lifted
+    const up = `M${X(-19)} ${Y + 3} C${X(-10)} ${top - 2 + slant} ${X(10)} ${top - 3 + slant * 0.4} ${X(21)} ${Y - 7}`;
+    const low = `C${X(12)} ${Y + h / 2 + 1} ${X(-8)} ${Y + h / 2 + 2} ${X(-19)} ${Y + 3}`;
+    const clip = uid('fx');
+    return `<clipPath id="${clip}"><path d="${up} ${low}Z"/></clipPath>
+      <path d="M${X(-18)} ${Y - 2} C${X(-8)} ${top - 14} ${X(14)} ${top - 15} ${X(30)} ${Y - 22} L${X(24)} ${Y - 5} Z" fill="${o.shadow}" opacity=".75"/>
+      <path d="M${X(-4)} ${Y + h / 2 + 4} C${X(8)} ${Y + h / 2 + 4} ${X(18)} ${Y + 2} ${X(26)} ${Y - 6}" stroke="${o.shadow}" stroke-width="6" opacity=".55" fill="none" stroke-linecap="round"/>
+      <path d="${up} ${low}Z" fill="#fff"/>
+      <g clip-path="url(#${clip})">
+        <ellipse cx="${X(1)}" cy="${Y + 1}" rx="10.5" ry="${h / 2 + 1}" fill="url(#${gid})"/>
+        <ellipse cx="${X(1)}" cy="${Y + 2}" rx="4.6" ry="${h / 2 - 4}" fill="#1b1020" opacity=".85"/>
+        <circle cx="${X(-3)}" cy="${Y - 3}" r="3.4" fill="#fff"/>
+        <circle cx="${X(5)}" cy="${Y + 5}" r="1.6" fill="#fff" opacity=".85"/>
+        <path d="M${X(-19)} ${top - 4} L${X(22)} ${top - 4} L${X(22)} ${top + 4} L${X(-19)} ${top + 4}Z" fill="${ink}" opacity=".18"/>
+      </g>
+      <path d="${up} L${X(31)} ${Y - 21} L${X(22)} ${Y - 4} C${X(10)} ${top + 2 + slant * 0.4} ${X(-10)} ${top + 2 + slant} ${X(-17)} ${Y + 3}Z" fill="${ink}"/>
+      <path d="M${X(-17)} ${Y + 1} L${X(-28)} ${Y + 8} L${X(-15)} ${Y + 5.5}Z" fill="${ink}"/>
+      <path d="M${X(21)} ${Y - 6} C${X(14)} ${Y + h / 2 - 1} ${X(6)} ${Y + h / 2 + 1.5} ${X(-2)} ${Y + h / 2 + 2}" stroke="${ink}" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <path d="M${X(-2)} ${Y + h / 2 + 2} C${X(-8)} ${Y + h / 2 + 2} ${X(-14)} ${Y + 6} ${X(-18)} ${Y + 4}" stroke="${ink}" stroke-width="1" opacity=".45" fill="none"/>
+      ${[[-4, -1, 3, -7], [3, -2, 5, -8], [10, -1, 7, -8], [16, 1, 9, -7]].map(([dx, dy, ex2, ey]) =>
+        `<path d="M${X(dx)} ${top + dy + slant * 0.5} q${(sd * ex2 * 0.4).toFixed(1)} ${ey * 0.6} ${(sd * ex2).toFixed(1)} ${ey}" stroke="${ink}" stroke-width="1.2" fill="none" stroke-linecap="round"/>`).join('')}`;
+  }
+
   function eyes(o) {
     const Y = 166, ink = o.lash || '#2a1730';
     const gid = uid('iris');
@@ -53,6 +88,8 @@ const Art = (() => {
         if (o.shadow) s += `<ellipse cx="${cx + sd * 2}" cy="${Y - 8}" rx="20" ry="8" fill="${o.shadow}" opacity=".7"/>`;
         s += `<path d="M${cx - 15} ${Y + 4} Q${cx} ${Y - 14} ${cx + 15} ${Y + 4}" stroke="${ink}" stroke-width="4.5" fill="none" stroke-linecap="round"/>`;
         if (o.wing) s += `<path d="M${cx + sd * 15} ${Y + 4} L${cx + sd * 25} ${Y - 4}" stroke="${ink}" stroke-width="3.5" stroke-linecap="round"/>`;
+      } else if (o.fox && ex !== 'hurt') {
+        s += foxEye(o, cx, sd, Y, ink, ex, gid);
       } else if (ex === 'hurt') {
         s += `<path d="M${out} ${Y - 9} L${inn + sd * 2} ${Y} L${out} ${Y + 9}" stroke="${ink}" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
       } else {
@@ -164,8 +201,8 @@ const Art = (() => {
     const h = uid('lh'), c = uid('lc'), t = uid('lt'), gd = uid('lgd');
     const skin = '#8a5a45', shade = '#69412f', line = '#9d96bd';
     const hd = head({
-      expr, eyeH: 23, iris: ['#9fd8cf', '#356a6c', '#effffc'], skin, shade,
-      lash: '#12070c', lashW: 5.5, wing: true, shadow: '#6a3a5c',
+      expr, eyeH: 22, iris: ['#9fd8cf', '#356a6c', '#effffc'], skin, shade,
+      lash: '#12070c', fox: true, shadow: '#6a3a5c',
       lips: '#d9617f', mouthCol: '#5a1a2e', blush: '#c4566a', softBlush: true,
       brow: '#eeecf6', browW: 2.6,
     });
@@ -187,9 +224,9 @@ const Art = (() => {
       <path d="M124 260 Q150 272 176 260" stroke="#c8902a" stroke-width="2" fill="none"/>
       <path d="M140 274 L160 274 L156 290 L150 296 L144 290Z" fill="url(#${gd})" stroke="#8a5a14" stroke-width="1.5"/>
       <circle cx="150" cy="282" r="4" fill="#5ee0d6"/>
-      <path d="M86 128 C76 192 82 244 98 300 C98 256 100 206 100 150Z" fill="url(#${h})" stroke="${line}" stroke-width="1.4"/>
-      <path d="M214 128 C224 192 218 244 202 300 C202 256 200 206 200 150Z" fill="url(#${h})" stroke="${line}" stroke-width="1.4"/>
-      <path d="M92 160 C88 200 90 240 96 280 M208 160 C212 200 210 240 204 280" stroke="#c9c2e2" stroke-width="1.4" fill="none"/>
+      <path d="M84 128 C74 192 80 244 96 300 C94 256 91 206 90 150Z" fill="url(#${h})" stroke="${line}" stroke-width="1.4"/>
+      <path d="M216 128 C226 192 220 244 204 300 C206 256 209 206 210 150Z" fill="url(#${h})" stroke="${line}" stroke-width="1.4"/>
+      <path d="M87 160 C83 200 86 240 92 280 M213 160 C217 200 214 240 208 280" stroke="#c9c2e2" stroke-width="1.4" fill="none"/>
       <path d="M86 152 C72 66 228 66 214 152 C206 116 180 96 150 94 C120 96 94 116 86 152Z" fill="url(#${h})" stroke="${line}" stroke-width="1.6"/>
       <path d="M150 92 C130 98 110 114 100 142 C112 126 124 116 138 110 C132 120 128 130 127 142 C134 126 142 112 150 104Z" fill="url(#${h})" stroke="${line}" stroke-width="1.4" stroke-linejoin="round"/>
       <path d="M150 92 C170 98 190 114 200 142 C188 126 176 116 162 110 C168 120 172 130 173 142 C166 126 158 112 150 104Z" fill="url(#${h})" stroke="${line}" stroke-width="1.4" stroke-linejoin="round"/>
