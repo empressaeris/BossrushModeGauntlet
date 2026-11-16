@@ -230,8 +230,10 @@ kbd {
 .vs-art { position: absolute; inset: 0 0 0 0; filter: drop-shadow(0 0 0 #fff) drop-shadow(0 10px 20px rgba(0, 0, 0, .4)); }
 .vs-name {
   position: absolute;
-  bottom: 158px;
-  font-size: 40px;
+  top: -14px; /* sits above the characters' heads, under the round label */
+  z-index: 2;
+  font-size: 38px;
+  line-height: 1.1;
   font-weight: 900;
   font-style: italic;
   color: #fff;
