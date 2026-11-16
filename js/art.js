@@ -93,7 +93,12 @@ const Art = (() => {
     const up = `M${X(-19)} ${Y + 4} C${X(-11)} ${top - 2 + slant} ${X(10)} ${top - 4 + slant * 0.4} ${X(21)} ${Y - 7}`;
     const low = `C${X(16)} ${Y + h / 2 + 2} ${X(-6)} ${Y + h / 2 + 4} ${X(-19)} ${Y + 4}`;
     const clip = uid('ce');
-    const lidY = (dx) => top - 2 + slant * (dx < 0 ? 0.75 : 0.35) + 0.022 * (dx - 1) * (dx - 1);
+    // point on the upper-lid curve (same control points as `up`), in [dx, y]
+    const lid = (t) => {
+      const P = [[-19, Y + 4], [-11, top - 2 + slant], [10, top - 4 + slant * 0.4], [21, Y - 7]];
+      const u = 1 - t, w = [u * u * u, 3 * u * u * t, 3 * u * t * t, t * t * t];
+      return [0, 1].map((k) => P.reduce((acc, p, i) => acc + p[k] * w[i], 0));
+    };
     let s = `<clipPath id="${clip}"><path d="${up} ${low}Z"/></clipPath>
       <path d="M${X(-16)} ${top - 1} C${X(-6)} ${top - 15} ${X(16)} ${top - 15} ${X(30)} ${Y - 30} L${X(22)} ${Y - 6}Z" fill="${o.shadow}" opacity=".6"/>
       <path d="M${X(-15)} ${top - 4 + slant * 0.6} C${X(-6)} ${top - 12 + slant * 0.5} ${X(10)} ${top - 13 + slant * 0.3} ${X(23)} ${Y - 14}" stroke="${ink}" stroke-width="1.5" fill="none" stroke-linecap="round"/>
@@ -108,7 +113,11 @@ const Art = (() => {
       <path d="M${X(21)} ${Y - 7} ${low}" stroke="${ink}" stroke-width="1.3" fill="none" stroke-linecap="round"/>
       <path d="${up} L${X(30)} ${Y - 34} L${X(8)} ${top + 3 + slant * 0.4} C${X(-5)} ${top + 4 + slant * 0.6} ${X(-13)} ${Y} ${X(-17)} ${Y + 4.5}Z" fill="${ink}"/>
       <path d="M${X(18)} ${Y + 2} l${(sd * 5).toFixed(1)} 3 M${X(14)} ${Y + 7} l${(sd * 4).toFixed(1)} 4.5" stroke="${ink}" stroke-width="1.3" stroke-linecap="round"/>`;
-    for (const [dx, len, lean] of [[-11, 7, 0], [-6, 10, 1], [-1, 12, 2], [4, 13, 4], [9, 13, 5], [14, 11, 6]]) s += lash(dx, lidY(dx), len, dx + lean);
+    // lashes root inside the liner (y + 2.5) so they read as growing out of it
+    for (const [t, len, lean] of [[0.24, 8, 0], [0.36, 10, 1], [0.48, 12, 2], [0.6, 13, 3.5], [0.72, 13, 5], [0.84, 11, 6]]) {
+      const [dx, y] = lid(t);
+      s += lash(dx, y + 2.5, len + 2.5, dx + lean);
+    }
     return s;
   }
 
