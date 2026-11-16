@@ -20,7 +20,9 @@
   const BGS = { city: Art.city, arena: Art.arena, countryside: Art.countryside, night: Art.night };
   const bg = (k) => (bgCache[k] ||= BGS[k]());
 
-  const PLAYER = { maxHP: 100, maxMP: 100, mpRegen: 13 /* per second */ };
+  const PLAYER = { maxHP: 100, maxMP: 100, mpRegen: 13 /* per second */, crit: 0.15, critMult: 1.6 };
+  // bosses crit on their regular attacks (not on special moves) for this multiplier
+  const BOSS_CRIT_MULT = 1.75;
 
   const SPELLS = [
     { id: 'frost', name: 'Frostbolt', key: '1', cost: 20, cd: 900, dmg: 12, element: 'ice',
@@ -35,7 +37,7 @@
 
   const BOSSES = [
     {
-      id: 'headstealer', title: 'Collector of Faces', maxHP: 120, weak: null, resist: null,
+      id: 'headstealer', title: 'Collector of Faces', maxHP: 120, crit: 0.10, weak: null, resist: null,
       interval: 2800, dmg: 9, attacks: ['Dagger Flurry', 'Shadow Step', 'Cutpurse Slash'],
       special: { every: 3, name: 'Pickpocket', charge: 2600, dmg: 5, type: 'drain', steal: 30, warn: "It's after your MP!" },
       intro: "That face... that hair... You smell just like the old thief who robbed me blind.",
@@ -43,7 +45,7 @@
       loseQuote: "Finally, I beat that little thief! Oh wait... she didn't use magic. Are you someone else?",
     },
     {
-      id: 'lion', title: 'Terror of the Ridge', maxHP: 200, weak: 'fire', resist: 'ice',
+      id: 'lion', title: 'Terror of the Ridge', maxHP: 200, crit: 0.12, weak: 'fire', resist: 'ice',
       interval: 2400, dmg: 11, attacks: ['Pounce', 'Raking Claws', 'Savage Bite'],
       enrage: { below: 0.5, interval: 1700 },
       intro: '*A low growl rumbles through the arena. The crowd goes very, very quiet.*',
@@ -51,7 +53,7 @@
       loseQuote: '*growls triumphantly*',
     },
     {
-      id: 'minotaur', title: 'Bull of the Labyrinth', maxHP: 260, weak: 'ice', resist: 'fire',
+      id: 'minotaur', title: 'Bull of the Labyrinth', maxHP: 260, crit: 0.14, weak: 'ice', resist: 'fire',
       interval: 3200, dmg: 14, attacks: ['Horn Gore', 'Hammer Fist', 'Stomp'],
       special: { every: 4, name: 'Earthshaker Charge', charge: 3600, dmg: 32, type: 'nuke', warn: 'Raise a Barrier!' },
       intro: '*SNORT* Little elf. I will grind you into the arena sand!',
@@ -59,7 +61,7 @@
       loseQuote: 'HA! Run home, little elf. The labyrinth has no room for the weak!',
     },
     {
-      id: 'lamia', title: 'Serpent of the Sunken Baths', maxHP: 230, weak: 'fire', resist: 'ice',
+      id: 'lamia', title: 'Serpent of the Sunken Baths', maxHP: 230, crit: 0.12, weak: 'fire', resist: 'ice',
       interval: 2300, dmg: 9, attacks: ['Tail Lash', 'Constrict', 'Hypnotic Sway'],
       special: { every: 3, name: 'Venom Fang', charge: 2600, dmg: 6, type: 'poison', dps: 4, duration: 6000, warn: 'Heal cures poison!' },
       intro: 'Ssso sweet... A little elf has wandered into my coils.',
@@ -67,7 +69,7 @@
       loseQuote: 'Rest now, little one. My coils are ever so... comfortable.',
     },
     {
-      id: 'griffin', title: 'Sovereign of the Skies', maxHP: 220, weak: 'fire', resist: 'ice',
+      id: 'griffin', title: 'Sovereign of the Skies', maxHP: 220, crit: 0.16, weak: 'fire', resist: 'ice',
       interval: 1900, dmg: 8, attacks: ['Talon Rake', 'Wing Buffet', 'Beak Strike'],
       special: { every: 4, name: 'Gale Dive', charge: 3000, dmg: 28, type: 'nuke', warn: 'Raise a Barrier!' },
       intro: '*SCREEEE!* The griffin circles the arena, its wings blotting out the sun.',
@@ -75,7 +77,7 @@
       loseQuote: '*SCREEE!* (It sounds very smug about this.)',
     },
     {
-      id: 'archmage', title: 'Master of the Arena', maxHP: 300, weak: 'ice', resist: 'fire',
+      id: 'archmage', title: 'Master of the Arena', maxHP: 300, crit: 0.15, weak: 'ice', resist: 'fire',
       interval: 3000, dmg: 12, attacks: ['Flame Lance', 'Ember Rain', 'Searing Ray'],
       special: { every: 3, name: 'Inferno Cataclysm', charge: 4500, dmg: 38, type: 'nuke', warn: 'Raise a Barrier!' },
       intro: "So you're the one who made it this far. Let's see whose magic runs in your veins.",
@@ -111,7 +113,7 @@
   let stopTyping = () => {};
 
   let run = null; // stats for the current playthrough
-  const newRun = () => ({ start: performance.now(), casts: 0, damage: 0, healed: 0, retries: 0, crits: 0 });
+  const newRun = () => ({ start: performance.now(), casts: 0, damage: 0, healed: 0, retries: 0, crits: 0, critsTaken: 0 });
 
   function fit() {
     const s = Math.min(window.innerWidth / 800, window.innerHeight / 600);
@@ -249,6 +251,7 @@
         <ul class="tips">
           <li>Enemies attack on a timer. <b>Watch the gauge</b> under them and raise a Barrier before big hits.</li>
           <li>Some foes are <b>weak</b> to fire or ice, and <b>resist</b> the other. Watch the damage numbers!</li>
+          <li>Lysa <b>and</b> her foes can land <b>critical hits</b> for big extra damage. Stay healthy!</li>
           <li>MP refills on its own. Press <kbd>1</kbd>–<kbd>4</kbd> to cast, <kbd>P</kbd> to pause, <kbd>M</kbd> to mute.</li>
         </ul>
         <button class="btn primary" data-act="go">Enter the Arena</button>
@@ -430,6 +433,8 @@
     const c = B.charge, b = B.boss;
     B.attackCount++;
     let dmg = Math.round(c.dmg * rand(0.85, 1.15));
+    const crit = !c.special && Math.random() < (b.crit || 0);
+    if (crit) { dmg = Math.round(dmg * BOSS_CRIT_MULT); run.critsTaken++; }
     const shielded = B.t < B.barrierUntil;
     if (shielded) dmg = Math.round(dmg * (1 - SPELLS[3].reduce));
 
@@ -449,15 +454,18 @@
     }
 
     B.php = Math.max(0, B.php - dmg);
-    popup(rand(60, 140), 450, shielded ? `${dmg} BLOCKED` : `-${dmg}`, shielded ? 'blocked' : 'hurt');
-    slash(c.type === 'nuke');
-    if (c.type === 'nuke') {
+    popup(rand(95, 150), 450, shielded ? `${dmg} BLOCKED` : `-${dmg}`, shielded ? 'blocked' : 'hurt');
+    if (crit) popup(150, 405, 'CRITICAL!', 'crit-label enemy');
+    slash(c.type === 'nuke' || crit);
+    if (crit) {
+      flash('red'); shake(true); Sound.sfx('crit'); Sound.sfx(shielded ? 'blocked' : 'bigHit');
+    } else if (c.type === 'nuke') {
       flash('fire'); shake(true); Sound.sfx('bigHit');
     } else {
       shake(false); Sound.sfx(shielded ? 'blocked' : 'hit');
     }
     if (shielded) burst(95, 505, 10, 'shard', 60);
-    if (c.type !== 'drain' && c.type !== 'poison') log(`${CAST[b.id].name} uses ${c.name}! ${shielded ? 'The barrier absorbs most of it. ' : ''}-${dmg} HP`);
+    if (c.type !== 'drain' && c.type !== 'poison') log(`${crit ? 'Critical hit! ' : ''}${CAST[b.id].name} uses ${c.name}! ${shielded ? 'The barrier absorbs most of it. ' : ''}-${dmg} HP`);
     setPose('player', 'hurt', 450);
 
     if (B.php <= 0) { lose(); return; }
@@ -478,8 +486,8 @@
       Sound.sfx(spell.id);
       const boss = b.boss;
       let mult = boss.weak === spell.element ? 2 : boss.resist === spell.element ? 0.5 : 1;
-      const crit = Math.random() < 0.12;
-      if (crit) mult *= 1.5;
+      const crit = Math.random() < PLAYER.crit;
+      if (crit) mult *= PLAYER.critMult;
       const dmg = Math.round(spell.dmg * mult * rand(0.92, 1.08));
       projectile(spell.id, { x: 100, y: 470 }, { x: 400 + rand(-30, 30), y: 210 + rand(-30, 30) }, 320, () => {
         if (B !== b || b.over) return;
@@ -488,27 +496,30 @@
         if (crit) run.crits++;
         burst(400, 210, 16, spell.id === 'frost' ? 'ice' : 'ember', 90);
         const tag = boss.weak === spell.element ? 'WEAK! ' : boss.resist === spell.element ? 'resist ' : '';
-        popup(400 + rand(-50, 50), 190, `${crit ? 'CRIT ' : ''}${tag}${dmg}`, `dmg ${tag ? (boss.weak === spell.element ? 'weak' : 'resist') : ''} ${crit ? 'crit' : ''}`);
+        if (crit) { popup(400, 120, 'CRITICAL!', 'crit-label'); flash('white'); shake(false); }
+        popup(400 + rand(-50, 50), 190, `${tag}${dmg}`, `dmg ${tag ? (boss.weak === spell.element ? 'weak' : 'resist') : ''} ${crit ? 'crit' : ''}`);
         if (crit) Sound.sfx('crit');
         if (boss.weak === spell.element) b.known.weak = spell.element;
         else if (boss.resist === spell.element) b.known.resist = spell.element;
         else b.known[`neutral-${spell.element}`] = true;
         renderTags();
         setPose('boss', 'hurt', 300);
-        log(`${spell.name} hits for ${dmg}!${tag === 'WEAK! ' ? " It's super effective!" : tag ? ' It resisted...' : ''}`);
+        log(`${crit ? 'Critical! ' : ''}${spell.name} hits for ${dmg}!${tag === 'WEAK! ' ? " It's super effective!" : tag ? ' It resisted...' : ''}`);
         if (b.hp <= 0) win();
       });
     } else if (spell.id === 'heal') {
       Sound.sfx('heal');
       const before = b.php;
-      b.php = Math.min(PLAYER.maxHP, b.php + spell.amount);
+      const crit = Math.random() < PLAYER.crit;
+      if (crit) { run.crits++; Sound.sfx('crit'); popup(110, 410, 'CRITICAL!', 'crit-label heal'); }
+      b.php = Math.min(PLAYER.maxHP, b.php + Math.round(spell.amount * (crit ? PLAYER.critMult : 1)));
       run.healed += b.php - before;
       const cured = !!b.poison;
       b.poison = null;
       popup(110, 450, `+${Math.round(b.php - before)}`, 'heal');
       burst(95, 510, 14, 'plus', 70);
       setPose('player', 'happy', 600);
-      log(`Lysa heals for ${Math.round(b.php - before)} HP!${cured ? ' The poison is cured!' : ''}`);
+      log(`${crit ? 'Critical heal! ' : ''}Lysa heals for ${Math.round(b.php - before)} HP!${cured ? ' The poison is cured!' : ''}`);
     } else if (spell.id === 'barrier') {
       Sound.sfx('barrier');
       b.barrierUntil = b.t + spell.duration;
@@ -663,6 +674,7 @@
           <div><b>${time}</b><span>Total time</span></div>
           <div><b>${run.casts}</b><span>Spells cast</span></div>
           <div><b>${run.damage}</b><span>Damage dealt</span></div>
+          <div><b>${run.crits}</b><span>Crits landed</span></div>
           <div><b>${run.retries}</b><span>Retries</span></div>
         </div>
         <button class="btn primary" data-act="again">Play Again</button>

@@ -25,6 +25,7 @@ There's no build step and nothing to install.
 
 - Bosses attack in real time. The **gauge under each boss** shows what attack is coming and when it lands.
 - **MP** refills on its own. Every spell costs MP, and Heal and Barrier also have cooldowns.
+- **Critical hits** can happen on both sides. Lysa's spells (Heal included) have a 15% chance to crit for 1.6× effect. Each boss has its own crit chance on regular attacks, rising from 10% to 16% as the gauntlet goes on, for 1.75× damage.
 - Each boss has a different **weakness** and **resistance**. A hit on a weakness does double damage and a resisted hit does half. Damage numbers show which is which, and the boss's tags fill in once you discover them.
 - Watch for special moves:
   - The Headstealer **steals your MP**.
@@ -36,13 +37,13 @@ There's no build step and nothing to install.
 
 ## What changed from the original
 
-- **New art direction:** Lysa and her grandmother are dark elves, with silver hair, long ears and gold circlets. Every character, background and icon is original anime-style vector art drawn in code (`js/art.js`). There are no image files and no public-domain illustrations.
+- **New art direction:** Lysa and her grandmother are dark elves, with silver hair, long ears and gold circlets. Lysa wears eyeshadow, winged eyeliner and rose lipstick, with a high-collared tunic and gold shoulder guards. Every character, background and icon is original anime-style vector art drawn in code (`js/art.js`). There are no image files and no public-domain illustrations.
 - **Original music and sound effects:** they're synthesized live with the Web Audio API (`js/audio.js`), so there are no audio files.
 - **Battle system:**
   - The boss's next attack is announced ahead of time.
   - Spells cost MP.
   - Heal and Barrier have cooldowns.
-  - Critical hits can happen, and damage numbers float up from each hit.
+  - Both sides can land critical hits, and damage numbers float up from each hit.
   - Each boss has a signature special move.
 - **Story:** the original story is kept, with three new bosses (the Minotaur, the Lamia and the Griffin) before the Archmage. There's a VS cut-in before each round, and the ending reveals the Archmage as Lysa's grandfather.
 - **Other improvements:** keyboard controls, pause, retrying a round, end-of-run stats, a layout that scales to fit any screen, and support for reduced motion.

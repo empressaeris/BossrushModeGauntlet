@@ -50,11 +50,14 @@ const Art = (() => {
       const out = cx + sd * 18, inn = cx - sd * 18;
       const ex = o.expr;
       if (ex === 'happy') {
+        if (o.shadow) s += `<ellipse cx="${cx + sd * 2}" cy="${Y - 8}" rx="20" ry="8" fill="${o.shadow}" opacity=".7"/>`;
         s += `<path d="M${cx - 15} ${Y + 4} Q${cx} ${Y - 14} ${cx + 15} ${Y + 4}" stroke="${ink}" stroke-width="4.5" fill="none" stroke-linecap="round"/>`;
+        if (o.wing) s += `<path d="M${cx + sd * 15} ${Y + 4} L${cx + sd * 25} ${Y - 4}" stroke="${ink}" stroke-width="3.5" stroke-linecap="round"/>`;
       } else if (ex === 'hurt') {
         s += `<path d="M${out} ${Y - 9} L${inn + sd * 2} ${Y} L${out} ${Y + 9}" stroke="${ink}" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
       } else {
-        const h = o.eyeH || (o.narrow ? 19 : 28), top = Y - h / 2;
+        const h = o.eyeH || (o.narrow ? 19 : 28), top = Y - h / 2, lw = o.lashW || 4.5;
+        if (o.shadow) s += `<ellipse cx="${cx + sd * 3}" cy="${top - 1}" rx="21" ry="9" fill="${o.shadow}" opacity=".75"/>`;
         s += `<ellipse cx="${cx}" cy="${Y}" rx="16" ry="${h / 2 + 1}" fill="#fff"/>
           <ellipse cx="${cx}" cy="${Y + 2}" rx="11.5" ry="${h / 2 - 0.5}" fill="url(#${gid})"/>
           <ellipse cx="${cx}" cy="${Y + 3}" rx="${o.slit ? 2.4 : 5}" ry="${o.slit ? h / 2 - 2 : Math.max(3, h / 2 - 6)}" fill="#1b1020" opacity=".85"/>
@@ -62,12 +65,13 @@ const Art = (() => {
           <circle cx="${cx + 4}" cy="${Y + 6}" r="1.8" fill="#fff" opacity=".85"/>`;
         const slant = ex === 'angry' ? 11 : ex === 'determined' ? 6 : 0;
         if (slant) {
-          s += `<polygon points="${out},${top - 10} ${inn},${top - 10} ${inn},${top + 3 + slant} ${out},${top + 3}" fill="${o.skin}"/>
-            <path d="M${out + sd * 4} ${top} L${out} ${top + 3} L${inn} ${top + 3 + slant}" stroke="${ink}" stroke-width="4.5" fill="none" stroke-linecap="round"/>`;
+          s += `<polygon points="${out},${top - 10} ${inn},${top - 10} ${inn},${top + 3 + slant} ${out},${top + 3}" fill="${o.shadow || o.skin}"/>
+            <path d="M${out + sd * 4} ${top} L${out} ${top + 3} L${inn} ${top + 3 + slant}" stroke="${ink}" stroke-width="${lw}" fill="none" stroke-linecap="round"/>`;
         } else {
-          s += `<path d="M${out} ${top + 4} Q${cx} ${top - 7} ${inn} ${top + 3}" stroke="${ink}" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+          s += `<path d="M${out} ${top + 4} Q${cx} ${top - 7} ${inn} ${top + 3}" stroke="${ink}" stroke-width="${lw}" fill="none" stroke-linecap="round"/>
             <path d="M${out} ${top + 4} L${out + sd * 6} ${top}" stroke="${ink}" stroke-width="3" stroke-linecap="round"/>`;
         }
+        if (o.wing) s += `<path d="M${out + sd * 1} ${top + 1} L${out + sd * 14} ${top - 6} L${out + sd * 2} ${top + 9}Z" fill="${ink}"/>`;
         s += `<path d="M${cx - 7} ${Y + h / 2 + 2} Q${cx} ${Y + h / 2 + 4} ${cx + 7} ${Y + h / 2 + 2}" stroke="${ink}" stroke-width="1.4" fill="none" opacity=".5"/>`;
       }
       // brows
@@ -80,7 +84,24 @@ const Art = (() => {
     return { eyes: s, brows };
   }
 
-  function mouth(expr, c = '#6b2a3a') {
+  function mouth(expr, c = '#6b2a3a', lips = null) {
+    if (lips) {
+      const closed = `<path d="M140 213 Q145 208.5 150 211 Q155 208.5 160 213 Q155 221 150 221 Q145 221 140 213Z" fill="${lips}"/>
+        <path d="M146 217.5 q3 1.2 6 0" stroke="#fff" stroke-width="1.3" opacity=".55" fill="none" stroke-linecap="round"/>`;
+      const upper = `<path d="M139 208 Q145 204.5 150 206.5 Q155 204.5 161 208" stroke="${lips}" stroke-width="3" fill="none" stroke-linecap="round"/>`;
+      switch (expr) {
+        case 'happy': case 'smile':
+          return `<path d="M139 208 Q150 224 161 208 Q150 212 139 208Z" fill="#5a1a2a"/><path d="M144 214 Q150 219 156 214" fill="#ff8fa3"/>${upper}<path d="M139 208 Q150 224 161 208" stroke="${lips}" stroke-width="3" fill="none"/>`;
+        case 'angry':
+          return `<path d="M139 216 Q150 207 161 216 Q155 226 150 226 Q145 226 139 216Z" fill="#5a1a2a" stroke="${lips}" stroke-width="3"/><path d="M142 214 L158 214 L156 217 L144 217Z" fill="#fff"/>`;
+        case 'hurt':
+          return `${closed}<path d="M140 215 Q145 212 150 215 Q155 218 160 214" stroke="${c}" stroke-width="1.8" fill="none"/>`;
+        case 'smirk':
+          return `${closed}<path d="M141 213.5 Q151 216 161 210" stroke="${c}" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
+        default:
+          return `${closed}<path d="M141 213.5 Q150 215.5 159 213.5" stroke="${c}" stroke-width="1.8" fill="none" stroke-linecap="round"/>`;
+      }
+    }
     switch (expr) {
       case 'happy':
       case 'smile':
@@ -104,8 +125,9 @@ const Art = (() => {
     const skin = o.skin || '#ffe6d6', shade = o.shade || '#f2bfa8';
     o.skin = skin;
     const e = eyes(o);
-    const blush = o.noBlush ? '' :
-      `<ellipse cx="110" cy="194" rx="13" ry="5.5" fill="${o.blush || '#ff7f9a'}" opacity="${o.blush ? 0.55 : 0.38}"/><ellipse cx="190" cy="194" rx="13" ry="5.5" fill="${o.blush || '#ff7f9a'}" opacity="${o.blush ? 0.55 : 0.38}"/>
+    const blush = o.noBlush ? '' : o.softBlush
+      ? `<ellipse cx="108" cy="192" rx="14" ry="6" fill="${o.blush}" opacity=".4"/><ellipse cx="192" cy="192" rx="14" ry="6" fill="${o.blush}" opacity=".4"/>`
+      : `<ellipse cx="110" cy="194" rx="13" ry="5.5" fill="${o.blush || '#ff7f9a'}" opacity="${o.blush ? 0.55 : 0.38}"/><ellipse cx="190" cy="194" rx="13" ry="5.5" fill="${o.blush || '#ff7f9a'}" opacity="${o.blush ? 0.55 : 0.38}"/>
        <path d="M104 192 l4 -4 M110 192 l4 -4 M186 192 l4 -4 M192 192 l4 -4" stroke="#ff6f8c" stroke-width="1.2" opacity=".5"/>`;
     const under = `
       <path d="M134 214 L134 266 Q150 276 166 266 L166 214Z" fill="${shade}"/>
@@ -113,7 +135,7 @@ const Art = (() => {
       <path d="M100 168 C104 196 124 218 150 232 C128 212 112 192 104 160Z" fill="${shade}" opacity=".35"/>
       ${blush}
       <path d="M150 189 L147.5 196 L151 196" stroke="${shade}" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-      ${e.eyes}${o.mouth === false ? '' : mouth(o.mouthExpr || o.expr, o.mouthCol)}`;
+      ${e.eyes}${o.mouth === false ? '' : mouth(o.mouthExpr || o.expr, o.mouthCol, o.lips)}`;
     return { under, brows: e.brows };
   }
 
@@ -139,30 +161,49 @@ const Art = (() => {
   }
 
   function lysa(expr = 'neutral') {
-    const h = uid('lh'), c = uid('lc');
+    const h = uid('lh'), c = uid('lc'), t = uid('lt'), gd = uid('lgd');
     const skin = '#8a5a45', shade = '#69412f', line = '#9d96bd';
-    const hd = head({ expr, eyeH: 24, iris: ['#9fd8cf', '#356a6c', '#effffc'], skin, shade, lash: '#160a10', blush: '#c4566a', mouthCol: '#3d1621' });
+    const hd = head({
+      expr, eyeH: 23, iris: ['#9fd8cf', '#356a6c', '#effffc'], skin, shade,
+      lash: '#12070c', lashW: 5.5, wing: true, shadow: '#6a3a5c',
+      lips: '#d9617f', mouthCol: '#5a1a2e', blush: '#c4566a', softBlush: true,
+      brow: '#eeecf6', browW: 2.6,
+    });
     return svg('0 0 300 360', `
-      <defs>${lin(h, [[0, '#ffffff'], [0.55, '#eeeaf7'], [1, '#c9c2e2']])}${lin(c, [[0, '#33449a'], [1, '#141a3d']])}</defs>
+      <defs>${lin(h, [[0, '#ffffff'], [0.55, '#eeeaf7'], [1, '#c9c2e2']])}${lin(c, [[0, '#2a3166'], [1, '#10132e']])}
+        ${lin(t, [[0, '#f3f6ea'], [1, '#b9c9a8']])}${lin(gd, [[0, '#ffe38a'], [1, '#c8902a']])}</defs>
       <path d="M84 130 C64 58 236 58 216 130 C240 210 248 300 234 360 L66 360 C52 300 60 210 84 130Z" fill="url(#${h})" stroke="${line}" stroke-width="1.6"/>
       <path d="M100 180 C96 240 98 300 92 360 M200 180 C204 240 202 300 208 360" stroke="#c9c2e2" stroke-width="2" fill="none"/>
-      <path d="M48 360 C56 292 96 262 150 258 C204 262 244 292 252 360Z" fill="url(#${c})"/>
-      <path d="M74 360 C80 318 96 296 110 286 M226 360 C220 318 204 296 190 286" stroke="#f2c65b" stroke-width="4" fill="none"/>
-      <path d="M124 258 L150 300 L176 258 Q150 272 124 258Z" fill="${shade}"/>
-      <path d="M112 262 L150 320 L188 262 L178 258 L150 300 L122 258Z" fill="#f2c65b"/>
-      <circle cx="150" cy="310" r="8.5" fill="#5ee0d6" stroke="#f2c65b" stroke-width="3"/>
-      <circle cx="147" cy="307" r="2.5" fill="#fff"/>
+      <path d="M40 360 C50 290 96 262 150 258 C204 262 250 290 260 360Z" fill="url(#${c})"/>
+      <path d="M72 360 C78 306 106 280 150 276 C194 280 222 306 228 360Z" fill="url(#${t})"/>
+      <path d="M150 284 L150 360 M118 300 C112 320 110 340 110 360 M182 300 C188 320 190 340 190 360" stroke="#c8902a" stroke-width="3" fill="none"/>
+      <ellipse cx="84" cy="298" rx="26" ry="14" fill="url(#${gd})" stroke="#8a5a14" stroke-width="2" transform="rotate(-18 84 298)"/>
+      <ellipse cx="216" cy="298" rx="26" ry="14" fill="url(#${gd})" stroke="#8a5a14" stroke-width="2" transform="rotate(18 216 298)"/>
+      <path d="M64 300 Q84 290 104 296 M196 296 Q216 290 236 300" stroke="#fff3c4" stroke-width="1.5" fill="none" opacity=".8"/>
       ${elfEars(skin, shade, '#4a2a1e')}
+      <path d="M36 112 l-5 7 M264 112 l5 7" stroke="#f0c75a" stroke-width="4" stroke-linecap="round"/>
       ${hd.under}
-      <path d="M90 128 C78 192 84 244 102 292 C104 252 108 204 110 150Z" fill="url(#${h})" stroke="${line}" stroke-width="1.4"/>
-      <path d="M210 128 C222 192 216 244 198 292 C196 252 192 204 190 150Z" fill="url(#${h})" stroke="${line}" stroke-width="1.4"/>
-      <path d="M96 160 C92 200 94 240 100 276 M204 160 C208 200 206 240 200 276" stroke="#c9c2e2" stroke-width="1.4" fill="none"/>
-      <path d="M86 150 C72 66 228 66 214 150 L203 116 L194 148 L180 106 L164 144 L150 100 L136 144 L120 106 L106 148 L97 116Z" fill="url(#${h})" stroke="${line}" stroke-width="1.6" stroke-linejoin="round"/>
-      <path d="M120 106 L114 132 M180 106 L186 132 M150 100 L150 124" stroke="#c9c2e2" stroke-width="1.6"/>
-      <path d="M150 80 C152 54 178 46 180 60 C170 56 160 62 155 82Z" fill="#f2eff9" stroke="${line}" stroke-width="1.4"/>
-      ${circlet('#5ee0d6')}
+      <path d="M120 228 L120 268 Q150 282 180 268 L180 228 Q150 244 120 228Z" fill="url(#${t})" stroke="#c8902a" stroke-width="2.5"/>
+      <path d="M124 260 Q150 272 176 260" stroke="#c8902a" stroke-width="2" fill="none"/>
+      <path d="M140 274 L160 274 L156 290 L150 296 L144 290Z" fill="url(#${gd})" stroke="#8a5a14" stroke-width="1.5"/>
+      <circle cx="150" cy="282" r="4" fill="#5ee0d6"/>
+      <path d="M86 128 C76 192 82 244 98 300 C98 256 100 206 100 150Z" fill="url(#${h})" stroke="${line}" stroke-width="1.4"/>
+      <path d="M214 128 C224 192 218 244 202 300 C202 256 200 206 200 150Z" fill="url(#${h})" stroke="${line}" stroke-width="1.4"/>
+      <path d="M92 160 C88 200 90 240 96 280 M208 160 C212 200 210 240 204 280" stroke="#c9c2e2" stroke-width="1.4" fill="none"/>
+      <path d="M86 152 C72 66 228 66 214 152 C206 116 180 96 150 94 C120 96 94 116 86 152Z" fill="url(#${h})" stroke="${line}" stroke-width="1.6"/>
+      <path d="M150 92 C130 98 110 114 100 142 C112 126 124 116 138 110 C132 120 128 130 127 142 C134 126 142 112 150 104Z" fill="url(#${h})" stroke="${line}" stroke-width="1.4" stroke-linejoin="round"/>
+      <path d="M150 92 C170 98 190 114 200 142 C188 126 176 116 162 110 C168 120 172 130 173 142 C166 126 158 112 150 104Z" fill="url(#${h})" stroke="${line}" stroke-width="1.4" stroke-linejoin="round"/>
+      <path d="M150 102 C148 118 150 134 147 150 C152 138 153 120 152 104Z" fill="url(#${h})" stroke="${line}" stroke-width="1.2"/>
+      <path d="M150 76 L150 96" stroke="${line}" stroke-width="1.6"/>
+      <path d="M118 84 Q150 74 182 84" stroke="#c9c2e2" stroke-width="2" fill="none"/>
+      <path d="M92 128 Q150 104 208 128" stroke="#8a5a14" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M92 128 Q150 104 208 128" stroke="#f0c75a" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <path d="M142 112 L158 112 L155 120 L145 120Z" fill="url(#${gd})" stroke="#8a5a14" stroke-width="1.3"/>
+      <path d="M150 120 L150 124" stroke="#c8902a" stroke-width="1.5"/>
+      <path d="M150 124 C155 130 155 137 150 140 C145 137 145 130 150 124Z" fill="#5ee0d6" stroke="#c8902a" stroke-width="1.5"/>
+      <circle cx="148.5" cy="131" r="1.3" fill="#fff"/>
       ${hd.brows}
-      ${sparkle(222, 104, 6)}`, 'char lysa');
+      ${sparkle(226, 100, 6)}`, 'char lysa');
   }
 
   function grandma(expr = 'smirk') {
