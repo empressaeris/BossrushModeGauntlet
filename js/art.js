@@ -1,0 +1,420 @@
+/* Havenwood Gauntlet — all artwork is drawn here as inline SVG.
+ * Characters share a 300x360 bust canvas; backgrounds use 800x600. */
+const Art = (() => {
+  let n = 0;
+  const uid = (p) => `${p}${++n}`;
+
+  const svg = (vb, body, cls = '', par = 'xMidYMax meet') =>
+    `<svg class="${cls}" viewBox="${vb}" preserveAspectRatio="${par}" xmlns="http://www.w3.org/2000/svg">${body}</svg>`;
+
+  const stops = (s) => s.map(([o, c, op]) =>
+    `<stop offset="${o}" stop-color="${c}"${op != null ? ` stop-opacity="${op}"` : ''}/>`).join('');
+  const lin = (id, s, x2 = 0, y2 = 1) =>
+    `<linearGradient id="${id}" x1="0" y1="0" x2="${x2}" y2="${y2}">${stops(s)}</linearGradient>`;
+  const rad = (id, s) => `<radialGradient id="${id}">${stops(s)}</radialGradient>`;
+  const glow = (id, d = 3) =>
+    `<filter id="${id}" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${d}" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+
+  // deterministic random so backgrounds look the same every time
+  function rng(seed) {
+    return () => {
+      seed |= 0; seed = (seed + 0x6d2b79f5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function star(cx, cy, r, fill, extra = '') {
+    const pts = [];
+    for (let i = 0; i < 10; i++) {
+      const a = -Math.PI / 2 + (i * Math.PI) / 5;
+      const rr = i % 2 ? r * 0.45 : r;
+      pts.push(`${(cx + Math.cos(a) * rr).toFixed(1)},${(cy + Math.sin(a) * rr).toFixed(1)}`);
+    }
+    return `<polygon points="${pts.join(' ')}" fill="${fill}" ${extra}/>`;
+  }
+  const sparkle = (x, y, r, fill = '#fff', op = 1) => (x = +x, y = +y, r = +r,
+    `<path d="M${x} ${y - r} Q${x} ${y} ${x + r} ${y} Q${x} ${y} ${x} ${y + r} Q${x} ${y} ${x - r} ${y} Q${x} ${y} ${x} ${y - r}Z" fill="${fill}" opacity="${op}"/>`);
+
+  /* ---------------- shared anime face ---------------- */
+  const FACE = 'M92 140 C92 84 208 84 208 140 C208 186 190 214 150 238 C110 214 92 186 92 140Z';
+
+  function eyes(o) {
+    const Y = 166, ink = o.lash || '#2a1730';
+    const gid = uid('iris');
+    let s = `<defs>${lin(gid, [[0, o.iris[1]], [0.55, o.iris[0]], [1, o.iris[2] || '#ffffff']])}</defs>`;
+    let brows = '';
+    for (const cx of [124, 176]) {
+      const sd = cx < 150 ? -1 : 1;          // direction of the outer corner
+      const out = cx + sd * 18, inn = cx - sd * 18;
+      const ex = o.expr;
+      if (ex === 'happy') {
+        s += `<path d="M${cx - 15} ${Y + 4} Q${cx} ${Y - 14} ${cx + 15} ${Y + 4}" stroke="${ink}" stroke-width="4.5" fill="none" stroke-linecap="round"/>`;
+      } else if (ex === 'hurt') {
+        s += `<path d="M${out} ${Y - 9} L${inn + sd * 2} ${Y} L${out} ${Y + 9}" stroke="${ink}" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+      } else {
+        const h = o.narrow ? 19 : 28, top = Y - h / 2;
+        s += `<ellipse cx="${cx}" cy="${Y}" rx="16" ry="${h / 2 + 1}" fill="#fff"/>
+          <ellipse cx="${cx}" cy="${Y + 2}" rx="11.5" ry="${h / 2 - 0.5}" fill="url(#${gid})"/>
+          <ellipse cx="${cx}" cy="${Y + 3}" rx="5" ry="${Math.max(3, h / 2 - 6)}" fill="#1b1020" opacity=".85"/>
+          <circle cx="${cx - 4}" cy="${Y - 4}" r="${o.narrow ? 2.8 : 4}" fill="#fff"/>
+          <circle cx="${cx + 4}" cy="${Y + 6}" r="1.8" fill="#fff" opacity=".85"/>`;
+        const slant = ex === 'angry' ? 11 : ex === 'determined' ? 6 : 0;
+        if (slant) {
+          s += `<polygon points="${out},${top - 10} ${inn},${top - 10} ${inn},${top + 3 + slant} ${out},${top + 3}" fill="${o.skin}"/>
+            <path d="M${out + sd * 4} ${top} L${out} ${top + 3} L${inn} ${top + 3 + slant}" stroke="${ink}" stroke-width="4.5" fill="none" stroke-linecap="round"/>`;
+        } else {
+          s += `<path d="M${out} ${top + 4} Q${cx} ${top - 7} ${inn} ${top + 3}" stroke="${ink}" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+            <path d="M${out} ${top + 4} L${out + sd * 6} ${top}" stroke="${ink}" stroke-width="3" stroke-linecap="round"/>`;
+        }
+        s += `<path d="M${cx - 7} ${Y + h / 2 + 2} Q${cx} ${Y + h / 2 + 4} ${cx + 7} ${Y + h / 2 + 2}" stroke="${ink}" stroke-width="1.4" fill="none" opacity=".5"/>`;
+      }
+      // brows
+      const bc = o.brow || ink, bw = o.browW || 3;
+      if (ex === 'angry') brows += `<path d="M${out} ${Y - 30} L${inn} ${Y - 19}" stroke="${bc}" stroke-width="${bw + 0.5}" stroke-linecap="round"/>`;
+      else if (ex === 'hurt' || ex === 'sad') brows += `<path d="M${out} ${Y - 22} Q${cx} ${Y - 26} ${inn} ${Y - 31}" stroke="${bc}" stroke-width="${bw}" fill="none" stroke-linecap="round"/>`;
+      else if (ex === 'determined') brows += `<path d="M${out} ${Y - 28} Q${cx} ${Y - 29} ${inn} ${Y - 24}" stroke="${bc}" stroke-width="${bw}" fill="none" stroke-linecap="round"/>`;
+      else brows += `<path d="M${out} ${Y - 25} Q${cx} ${Y - 31} ${inn} ${Y - 26}" stroke="${bc}" stroke-width="${bw}" fill="none" stroke-linecap="round"/>`;
+    }
+    return { eyes: s, brows };
+  }
+
+  function mouth(expr) {
+    const c = '#6b2a3a';
+    switch (expr) {
+      case 'happy':
+      case 'smile':
+        return `<path d="M139 208 Q150 224 161 208 Q150 212 139 208Z" fill="#8a2f45"/><path d="M144 214 Q150 219 156 214" fill="#ff8fa3"/>`;
+      case 'smirk':
+        return `<path d="M140 213 Q152 218 161 207" stroke="${c}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+      case 'angry':
+        return `<path d="M139 216 Q150 207 161 216 Q155 226 150 226 Q145 226 139 216Z" fill="#5a1a2a"/><path d="M142 214 L158 214 L156 217 L144 217Z" fill="#fff"/>`;
+      case 'hurt':
+        return `<path d="M139 216 Q143 211 147 216 Q151 221 155 216 Q159 211 162 215" stroke="${c}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+      case 'sad':
+        return `<path d="M142 217 Q150 210 158 217" stroke="${c}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+      case 'determined':
+        return `<path d="M141 213 Q150 217 159 213" stroke="${c}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+      default:
+        return `<path d="M143 213 Q150 217 157 213" stroke="${c}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
+    }
+  }
+
+  function head(o) {
+    const skin = o.skin || '#ffe6d6', shade = o.shade || '#f2bfa8';
+    o.skin = skin;
+    const e = eyes(o);
+    const blush = o.noBlush ? '' :
+      `<ellipse cx="110" cy="194" rx="13" ry="5.5" fill="#ff7f9a" opacity=".38"/><ellipse cx="190" cy="194" rx="13" ry="5.5" fill="#ff7f9a" opacity=".38"/>
+       <path d="M104 192 l4 -4 M110 192 l4 -4 M186 192 l4 -4 M192 192 l4 -4" stroke="#ff6f8c" stroke-width="1.2" opacity=".5"/>`;
+    const under = `
+      <path d="M134 214 L134 266 Q150 276 166 266 L166 214Z" fill="${shade}"/>
+      <path d="${FACE}" fill="${skin}"/>
+      <path d="M100 168 C104 196 124 218 150 232 C128 212 112 192 104 160Z" fill="${shade}" opacity=".35"/>
+      ${blush}
+      <path d="M150 189 L147.5 196 L151 196" stroke="${shade}" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      ${e.eyes}${o.mouth === false ? '' : mouth(o.mouthExpr || o.expr)}`;
+    return { under, brows: e.brows };
+  }
+
+  /* ---------------- characters ---------------- */
+  function lysa(expr = 'neutral') {
+    const h = uid('lh'), c = uid('lc'), hl = uid('lhl');
+    const hd = head({ expr, iris: ['#4fd1c5', '#0f4c5c', '#d4fff8'], skin: '#ffe8d9', shade: '#f4c1ab' });
+    return svg('0 0 300 360', `
+      <defs>${lin(h, [[0, '#a98bff'], [0.6, '#d79cff'], [1, '#ff9ccf']])}${lin(c, [[0, '#33449a'], [1, '#141a3d']])}${lin(hl, [[0, '#ffffff', 0.7], [1, '#ffffff', 0]])}</defs>
+      <path d="M84 130 C64 58 236 58 216 130 C240 210 248 300 234 360 L66 360 C52 300 60 210 84 130Z" fill="url(#${h})"/>
+      <path d="M48 360 C56 292 96 262 150 258 C204 262 244 292 252 360Z" fill="url(#${c})"/>
+      <path d="M74 360 C80 318 96 296 110 286 M226 360 C220 318 204 296 190 286" stroke="#f2c65b" stroke-width="4" fill="none"/>
+      <path d="M124 258 L150 300 L176 258 Q150 272 124 258Z" fill="#fff4ea"/>
+      <path d="M112 262 L150 320 L188 262 L178 258 L150 300 L122 258Z" fill="#f2c65b"/>
+      <circle cx="150" cy="310" r="8.5" fill="#5ee0d6" stroke="#f2c65b" stroke-width="3"/>
+      <circle cx="147" cy="307" r="2.5" fill="#fff"/>
+      ${hd.under}
+      <path d="M90 128 C78 192 84 244 102 292 C104 252 108 204 110 150Z" fill="url(#${h})"/>
+      <path d="M210 128 C222 192 216 244 198 292 C196 252 192 204 190 150Z" fill="url(#${h})"/>
+      <path d="M86 150 C72 66 228 66 214 150 L203 116 L194 146 L180 106 L164 142 L150 100 L136 142 L120 106 L106 146 L97 116Z" fill="url(#${h})"/>
+      <path d="M104 98 Q150 80 196 98" stroke="url(#${hl})" stroke-width="7" fill="none" stroke-dasharray="16 7" stroke-linecap="round"/>
+      <path d="M150 80 C152 54 178 46 180 60 C170 56 160 62 155 82Z" fill="#a98bff"/>
+      ${hd.brows}
+      ${star(198, 110, 11, '#ffd85e', 'stroke="#e0a72e" stroke-width="1.5"')}
+      ${sparkle(212, 96, 5)}`, 'char lysa');
+  }
+
+  function grandma(expr = 'smirk') {
+    const h = uid('gh'), sh = uid('gs'), gem = uid('gg');
+    const hd = head({ expr, mouthExpr: expr === 'neutral' ? 'smirk' : expr, narrow: true, iris: ['#b48cff', '#3e2470', '#efe2ff'], skin: '#f9e0cf', shade: '#e6b9a1', brow: '#9a9cb2' });
+    return svg('0 0 300 360', `
+      <defs>${lin(h, [[0, '#f4f5fb'], [1, '#a7abc4']])}${lin(sh, [[0, '#8a4fb0'], [1, '#3d1f59']])}${lin(gem, [[0, '#ff9ad5'], [1, '#7a2cff']], 1, 1)}</defs>
+      <circle cx="150" cy="70" r="32" fill="url(#${h})"/>
+      <path d="M132 46 L178 98" stroke="#c9a24a" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="132" cy="46" r="5" fill="#ff7fb5"/>
+      <path d="M86 140 C70 70 230 70 214 140 C222 180 216 210 204 226 L96 226 C84 210 78 180 86 140Z" fill="url(#${h})"/>
+      <path d="M44 360 C54 292 96 262 150 258 C204 262 246 292 256 360Z" fill="url(#${sh})"/>
+      <path d="M60 360 C70 320 90 300 108 290 L120 360Z M240 360 C230 320 210 300 192 290 L180 360Z" fill="#2b1840" opacity=".45"/>
+      ${hd.under}
+      <path d="M116 236 Q150 262 184 236 L192 262 Q150 292 108 262Z" fill="#2a2238"/>
+      <path d="M120 262 Q150 280 180 262" stroke="#4a3d60" stroke-width="2" fill="none"/>
+      <path d="M100 172 l-8 -3 M100 178 l-8 2 M200 172 l8 -3 M200 178 l8 2" stroke="#d8a790" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M88 146 C82 76 218 76 212 146 C204 112 182 98 150 104 C118 98 96 112 88 146Z" fill="url(#${h})"/>
+      <path d="M112 100 Q132 92 150 104 M188 100 Q168 92 150 104" stroke="#8d91ab" stroke-width="1.6" fill="none"/>
+      ${hd.brows}
+      <circle cx="124" cy="167" r="21" fill="#dff3ff" fill-opacity=".18" stroke="#c9a24a" stroke-width="2.6"/>
+      <circle cx="176" cy="167" r="21" fill="#dff3ff" fill-opacity=".18" stroke="#c9a24a" stroke-width="2.6"/>
+      <path d="M145 165 Q150 160 155 165" stroke="#c9a24a" stroke-width="2.6" fill="none"/>
+      <path d="M112 158 l8 -6" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".8"/>
+      <path d="M164 158 l8 -6" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".8"/>
+      <g transform="translate(232 300) rotate(12)">
+        <polygon points="0,-26 18,-6 0,26 -18,-6" fill="url(#${gem})" stroke="#fff" stroke-width="2"/>
+        <path d="M-18 -6 L18 -6 M0 -26 L-6 -6 L0 26 M0 -26 L6 -6" stroke="#fff" stroke-width="1" opacity=".6" fill="none"/>
+      </g>
+      ${sparkle(258, 276, 7)}${sparkle(214, 330, 5)}`, 'char grandma');
+  }
+
+  function headstealer(expr = 'angry') {
+    const h = uid('hh'), g = uid('hg'), w = uid('hw');
+    const eyeOp = expr === 'hurt' ? 0.45 : 1;
+    return svg('0 0 300 360', `
+      <defs>${lin(h, [[0, '#4b3a62'], [1, '#140d1d']])}${glow(g, 3.5)}${rad(w, [[0, '#b46bff', 0.55], [1, '#b46bff', 0]])}</defs>
+      <circle cx="150" cy="190" r="150" fill="url(#${w})"/>
+      <path d="M38 360 C48 240 70 108 150 58 C230 108 252 240 262 360Z" fill="url(#${h})"/>
+      <path d="M150 58 C120 90 100 140 96 196 M150 58 C180 90 200 140 204 196" stroke="#6c5a85" stroke-width="2" fill="none" opacity=".6"/>
+      <path d="M92 232 C84 150 110 102 150 96 C190 102 216 150 208 232 Q150 266 92 232Z" fill="#07040b"/>
+      <g filter="url(#${g})" opacity="${eyeOp}">
+        <polygon points="108,166 144,178 140,188 112,180" fill="#ff3b6b"/>
+        <polygon points="192,166 156,178 160,188 188,180" fill="#ff3b6b"/>
+        <circle cx="128" cy="179" r="2.5" fill="#fff"/><circle cx="172" cy="179" r="2.5" fill="#fff"/>
+      </g>
+      <path d="M100 200 Q150 220 200 200 L196 240 Q150 266 104 240Z" fill="#544468"/>
+      <path d="M112 214 l6 8 M126 220 l4 8 M150 222 v9 M174 220 l-4 8 M188 214 l-6 8" stroke="#2a2036" stroke-width="2.4" stroke-linecap="round"/>
+      <path d="M70 360 L210 268 M230 360 L90 268" stroke="#2a1d35" stroke-width="14"/>
+      <path d="M70 360 L210 268 M230 360 L90 268" stroke="#7d5a3a" stroke-width="3" stroke-dasharray="6 10"/>
+      <g transform="translate(232 250) rotate(-35)">
+        <rect x="-4" y="-6" width="8" height="22" rx="2" fill="#5a3b2a"/><rect x="-12" y="-10" width="24" height="5" rx="2" fill="#c9a24a"/>
+        <polygon points="-5,-10 5,-10 0,-58" fill="#d9e2f2" stroke="#8b95ad" stroke-width="1.5"/>
+      </g>
+      <g transform="translate(68 250) rotate(35)">
+        <rect x="-4" y="-6" width="8" height="22" rx="2" fill="#5a3b2a"/><rect x="-12" y="-10" width="24" height="5" rx="2" fill="#c9a24a"/>
+        <polygon points="-5,-10 5,-10 0,-58" fill="#d9e2f2" stroke="#8b95ad" stroke-width="1.5"/>
+      </g>
+      <circle cx="150" cy="308" r="13" fill="#c9a24a" stroke="#7d5a1c" stroke-width="3"/>
+      <circle cx="150" cy="308" r="5" fill="#ff3b6b"/>
+      ${sparkle(60, 120, 6, '#d6a8ff', 0.8)}${sparkle(244, 90, 8, '#d6a8ff', 0.8)}${sparkle(262, 170, 4, '#d6a8ff', 0.7)}`, 'char headstealer');
+  }
+
+  function lion(expr = 'angry') {
+    const f = uid('lf'), b = uid('lb');
+    const hurt = expr === 'hurt';
+    const eye = (cx, sd) => hurt
+      ? `<path d="M${cx + sd * 18} ${150} L${cx - sd * 12} ${160} L${cx + sd * 18} ${170}" stroke="#2a1508" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`
+      : `<path d="M${cx + sd * 22} 164 Q${cx} 140 ${cx - sd * 20} 158 Q${cx} 178 ${cx + sd * 22} 164Z" fill="#ffd34d" stroke="#2a1508" stroke-width="3.5"/>
+         <ellipse cx="${cx}" cy="161" rx="3.8" ry="11" fill="#1b1020"/>
+         <circle cx="${cx - 5}" cy="155" r="3" fill="#fff"/>
+         <path d="M${cx + sd * 24} 142 L${cx - sd * 20} 151" stroke="#5a3214" stroke-width="5" stroke-linecap="round"/>`;
+    const fluff = (sd) => {
+      const x = (v) => 150 + sd * v;
+      return `<path d="M${x(-78)} 158 L${x(-104)} 176 L${x(-80)} 186 L${x(-108)} 204 L${x(-76)} 210 L${x(-96)} 236 L${x(-60)} 232 L${x(-64)} 252 L${x(-40)} 240Z" fill="url(#${f})"/>`;
+    };
+    const mouthD = hurt
+      ? `<path d="M134 228 Q142 222 150 228 Q158 234 166 228" stroke="#2a1508" stroke-width="3" fill="none" stroke-linecap="round"/>`
+      : `<path d="M126 224 Q150 256 174 224 Q150 234 126 224Z" fill="#5a1a24"/>
+         <polygon points="132,226 140,228 135,242" fill="#fff"/><polygon points="168,226 160,228 165,242" fill="#fff"/>`;
+    return svg('0 0 300 360', `
+      <defs>${lin(f, [[0, '#f0bd7c'], [1, '#b8763a']])}${lin(b, [[0, '#d99a58'], [1, '#8b5426']])}</defs>
+      <path d="M36 360 C46 286 98 256 150 256 C202 256 254 286 264 360Z" fill="url(#${b})"/>
+      <path d="M112 262 L124 300 L136 270 L150 316 L164 270 L176 300 L188 262 Q150 250 112 262Z" fill="#fbeedd"/>
+      ${fluff(-1)}${fluff(1)}
+      <path d="M84 124 L78 46 L136 90Z" fill="url(#${f})" stroke="#8b5426" stroke-width="3"/>
+      <path d="M216 124 L222 46 L164 90Z" fill="url(#${f})" stroke="#8b5426" stroke-width="3"/>
+      <path d="M92 110 L89 64 L124 92Z" fill="#f3a6a0"/><path d="M208 110 L211 64 L176 92Z" fill="#f3a6a0"/>
+      <path d="M72 170 C72 100 110 72 150 72 C190 72 228 100 228 170 C228 230 196 268 150 272 C104 268 72 230 72 170Z" fill="url(#${f})"/>
+      <path d="M150 88 L144 118 L150 126 L156 118Z M124 92 L126 112 L132 96Z M176 92 L174 112 L168 96Z" fill="#7d4a20" opacity=".6"/>
+      <path d="M114 206 C112 180 188 180 186 206 C186 238 162 254 150 254 C138 254 114 238 114 206Z" fill="#fbeedd"/>
+      ${eye(118, -1)}${eye(182, 1)}
+      <path d="M190 130 L176 186" stroke="#e98a8a" stroke-width="3" stroke-linecap="round" opacity=".8"/>
+      <path d="M137 198 L163 198 L150 213Z" fill="#d77a7a"/>
+      <path d="M150 213 L150 222" stroke="#2a1508" stroke-width="3"/>
+      ${mouthD}
+      <circle cx="126" cy="214" r="2" fill="#a0683a"/><circle cx="120" cy="222" r="2" fill="#a0683a"/>
+      <circle cx="174" cy="214" r="2" fill="#a0683a"/><circle cx="180" cy="222" r="2" fill="#a0683a"/>
+      <path d="M116 214 L64 204 M116 222 L62 226 M184 214 L236 204 M184 222 L238 226" stroke="#fff" stroke-width="2" opacity=".85"/>
+      ${hurt ? '' : `<path d="M58 80 l14 10 M54 100 l16 4 M242 80 l-14 10 M246 100 l-16 4" stroke="#ff4d4d" stroke-width="4" stroke-linecap="round"/>`}`, 'char lion');
+  }
+
+  function archmage(expr = 'angry') {
+    const r = uid('ar'), ht = uid('aht'), bd = uid('abd'), orb = uid('aorb'), g = uid('ag');
+    const hd = head({ expr, narrow: true, mouth: false, iris: ['#ffcc4d', '#8a4b00', '#fff3c4'], skin: '#f6d6c0', shade: '#dfb39b', noBlush: expr !== 'happy', brow: '#ffffff', browW: 0 });
+    const browY = expr === 'angry' ? [138, 152] : expr === 'happy' ? [140, 140] : [140, 144];
+    const brow = (sd) => {
+      const o = 150 + sd * 46, i = 150 + sd * 8;
+      return `<path d="M${o} ${browY[0]} Q${(o + i) / 2} ${browY[0] - 6} ${i} ${browY[1]} L${i} ${browY[1] + 9} Q${(o + i) / 2} ${browY[0] + 4} ${o + sd * 4} ${browY[0] + 10}Z" fill="#fbfbff" stroke="#b9bdd0" stroke-width="1.5"/>`;
+    };
+    return svg('0 0 300 360', `
+      <defs>${lin(r, [[0, '#d6453a'], [1, '#5e1010']])}${lin(ht, [[0, '#4a2f86'], [1, '#1f123b']])}${lin(bd, [[0, '#ffffff'], [1, '#c6cadb']])}
+        ${rad(orb, [[0, '#fff6c9'], [0.4, '#ffb347'], [1, '#ff4d1a', 0]])}${glow(g, 4)}</defs>
+      <path d="M86 150 C66 200 70 290 84 340 L216 340 C230 290 234 200 214 150Z" fill="#e9ebf4"/>
+      <path d="M36 360 C46 288 96 258 150 256 C204 258 254 288 264 360Z" fill="url(#${r})"/>
+      <path d="M110 268 L120 360 M190 268 L180 360" stroke="#f2c65b" stroke-width="5"/>
+      <path d="M262 360 L270 112" stroke="#6b4a2b" stroke-width="9" stroke-linecap="round"/>
+      <path d="M254 132 Q270 92 286 132" stroke="#c9a24a" stroke-width="4" fill="none"/>
+      <circle cx="270" cy="104" r="34" fill="url(#${orb})" filter="url(#${g})"/>
+      <circle cx="270" cy="104" r="10" fill="#fff8de"/>
+      ${hd.under}
+      <path d="M90 140 C78 190 84 230 98 252 L112 196Z M210 140 C222 190 216 230 202 252 L188 196Z" fill="#f4f5fb"/>
+      <path d="M96 188 C94 250 116 322 150 352 C184 322 206 250 204 188 C188 212 170 222 150 222 C130 222 112 212 96 188Z" fill="url(#${bd})"/>
+      <path d="M122 240 Q130 290 146 330 M178 240 Q170 290 154 330 M150 236 L150 340" stroke="#aeb3c8" stroke-width="1.6" fill="none"/>
+      <path d="M116 210 Q150 194 184 210 Q170 226 150 214 Q130 226 116 210Z" fill="#fbfbff" stroke="#b9bdd0" stroke-width="1.5"/>
+      ${expr === 'happy' ? '<path d="M140 222 Q150 230 160 222" stroke="#6b2a3a" stroke-width="2.5" fill="none" stroke-linecap="round"/>' : ''}
+      ${brow(-1)}${brow(1)}
+      <path d="M150 112 C110 102 92 112 90 120 L210 120 C208 112 190 102 150 112Z" fill="#f4f5fb"/>
+      <ellipse cx="150" cy="114" rx="104" ry="20" fill="url(#${ht})"/>
+      <path d="M94 112 C116 82 130 40 168 16 C184 6 204 18 192 32 C178 52 196 86 206 112Z" fill="url(#${ht})"/>
+      <path d="M96 104 Q150 90 204 104 L206 114 Q150 100 94 114Z" fill="#f2c65b"/>
+      ${star(132, 76, 7, '#ffd85e')}${star(170, 52, 5, '#ffd85e')}${star(184, 86, 6, '#ffd85e')}
+      ${sparkle(240, 60, 7, '#ffe6a8')}${sparkle(296, 160, 5, '#ffe6a8')}`, 'char archmage');
+  }
+
+  /* ---------------- backgrounds ---------------- */
+  const BG = '0 0 800 600';
+  const bgSvg = (body) => svg(BG, body, 'bg-art', 'xMidYMid slice');
+
+  function starfield(R, count, h, op = 1) {
+    let s = '';
+    for (let i = 0; i < count; i++) {
+      const x = R() * 800, y = R() * h, r = R() * 1.8 + 0.4;
+      s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(2)}" fill="#fff" opacity="${(op * (0.4 + R() * 0.6)).toFixed(2)}"/>`;
+    }
+    return s;
+  }
+
+  function cloud(x, y, s, fill, op = 1) {
+    return `<g transform="translate(${x} ${y}) scale(${s})" fill="${fill}" opacity="${op}">
+      <ellipse cx="0" cy="0" rx="60" ry="22"/><ellipse cx="-34" cy="-8" rx="30" ry="22"/><ellipse cx="20" cy="-18" rx="36" ry="28"/><ellipse cx="52" cy="-4" rx="26" ry="18"/></g>`;
+  }
+
+  function city() {
+    const R = rng(7), sky = uid('cs'), sun = uid('cn');
+    let far = '', near = '', win = '';
+    for (let x = -20; x < 820;) {
+      const w = 40 + R() * 50, h = 120 + R() * 140;
+      far += `<rect x="${x}" y="${470 - h}" width="${w}" height="${h + 140}" fill="#7a4a9e"/>`;
+      if (R() > 0.5) far += `<polygon points="${x - 4},${470 - h} ${x + w / 2},${470 - h - 40} ${x + w + 4},${470 - h}" fill="#7a4a9e"/>`;
+      x += w + 4;
+    }
+    for (let x = -10; x < 820;) {
+      const w = 60 + R() * 70, h = 80 + R() * 110, top = 560 - h;
+      near += `<rect x="${x}" y="${top}" width="${w}" height="${h + 60}" fill="#3a2257"/>
+        <polygon points="${x - 8},${top} ${x + w / 2},${top - 34 - R() * 20} ${x + w + 8},${top}" fill="#2a1842"/>`;
+      for (let wy = top + 16; wy < 580; wy += 26)
+        for (let wx = x + 12; wx < x + w - 14; wx += 22)
+          if (R() > 0.35) win += `<rect x="${wx.toFixed(0)}" y="${wy.toFixed(0)}" width="10" height="13" rx="2" fill="#ffd98a" opacity="${(0.6 + R() * 0.4).toFixed(2)}"/>`;
+      x += w + 10;
+    }
+    return bgSvg(`<defs>${lin(sky, [[0, '#2a1b5c'], [0.5, '#ff7eb3'], [1, '#ffcf96']])}${rad(sun, [[0, '#fff1c7'], [1, '#ffb38a', 0]])}</defs>
+      <rect width="800" height="600" fill="url(#${sky})"/>
+      ${starfield(R, 40, 180, 0.8)}
+      <circle cx="560" cy="380" r="220" fill="url(#${sun})"/><circle cx="560" cy="380" r="80" fill="#fff0cf"/>
+      ${cloud(140, 150, 1.4, '#ffb3d1', 0.8)}${cloud(620, 110, 1.1, '#ffc6dd', 0.7)}${cloud(400, 240, 0.9, '#ffd0b0', 0.6)}
+      <path d="M220 330 L220 230 L240 200 L260 230 L260 330Z M320 330 L320 180 L345 130 L370 180 L370 330Z" fill="#8f5ab3"/>
+      ${far}${near}${win}
+      <rect y="560" width="800" height="40" fill="#1e1030"/>`);
+  }
+
+  function arena(tint = '') {
+    const R = rng(21), sky = uid('as'), sand = uid('asd'), wall = uid('aw');
+    let arches = '', crowd = '', banners = '';
+    for (let x = -20; x < 820; x += 70) {
+      arches += `<path d="M${x} 330 L${x} 290 Q${x + 30} 258 ${x + 60} 290 L${x + 60} 330Z" fill="#6a4a73"/>`;
+    }
+    const cols = ['#ff7fb5', '#7fd3ff', '#ffd85e', '#a98bff', '#8ef0c0', '#ff9b6b', '#ffffff'];
+    for (let row = 0; row < 4; row++)
+      for (let x = 0; x < 800; x += 13) {
+        const y = 175 + row * 18 + (R() * 4);
+        crowd += `<circle cx="${(x + R() * 6).toFixed(0)}" cy="${y.toFixed(0)}" r="${(5 + R() * 2).toFixed(1)}" fill="${cols[Math.floor(R() * cols.length)]}" opacity=".85"/>`;
+      }
+    for (const x of [60, 250, 550, 740]) {
+      banners += `<path d="M${x} 60 L${x} 175" stroke="#5a3b2a" stroke-width="4"/>
+        <path d="M${x} 64 L${x + 40} 70 L${x + 34} 92 L${x + 40} 114 L${x} 108Z" fill="${x < 400 ? '#ff5d8f' : '#5db7ff'}"/>
+        ${star(x + 18, 88, 7, '#fff')}`;
+    }
+    return bgSvg(`<defs>${lin(sky, [[0, '#7fc8ff'], [1, '#e8f6ff']])}${lin(sand, [[0, '#f6dfb0'], [1, '#d9b47a']])}${lin(wall, [[0, '#a88bb8'], [1, '#7a5f8c']])}</defs>
+      <rect width="800" height="600" fill="url(#${sky})"/>
+      ${cloud(120, 70, 1.2, '#fff', 0.95)}${cloud(470, 50, 0.9, '#fff', 0.9)}${cloud(700, 90, 1.1, '#fff', 0.85)}
+      ${banners}
+      <rect y="160" width="800" height="90" fill="#5d4470"/>
+      ${crowd}
+      <rect y="246" width="800" height="90" fill="url(#${wall})"/>
+      <rect y="246" width="800" height="8" fill="#f2c65b"/>
+      ${arches}
+      <rect y="330" width="800" height="270" fill="url(#${sand})"/>
+      <ellipse cx="400" cy="470" rx="330" ry="90" fill="none" stroke="#c99a5e" stroke-width="5" opacity=".6"/>
+      <ellipse cx="400" cy="470" rx="160" ry="42" fill="none" stroke="#c99a5e" stroke-width="3" opacity=".5"/>
+      ${tint ? `<rect width="800" height="600" fill="${tint}"/>` : ''}`);
+  }
+
+  function countryside() {
+    const R = rng(99), sky = uid('ks'), h1 = uid('kh');
+    let flowers = '', flies = '';
+    for (let i = 0; i < 70; i++) {
+      flowers += `<circle cx="${(R() * 800).toFixed(0)}" cy="${(470 + R() * 130).toFixed(0)}" r="${(2 + R() * 3).toFixed(1)}" fill="${['#fff', '#ffd85e', '#ff9ccf', '#c9b6ff'][i % 4]}"/>`;
+    }
+    for (let i = 0; i < 22; i++) flies += sparkle((R() * 800).toFixed(0), (260 + R() * 260).toFixed(0), 3 + R() * 4, '#fff6b0', 0.85);
+    return bgSvg(`<defs>${lin(sky, [[0, '#6b5bd6'], [0.45, '#ff9ec4'], [1, '#ffd59e']])}${lin(h1, [[0, '#8fd47a'], [1, '#4c9a5a']])}</defs>
+      <rect width="800" height="600" fill="url(#${sky})"/>
+      ${starfield(R, 25, 140, 0.7)}
+      <circle cx="210" cy="330" r="70" fill="#fff0cf" opacity=".95"/>
+      ${cloud(560, 130, 1.3, '#ffd0e4', 0.8)}${cloud(260, 180, 0.9, '#ffe2cf', 0.7)}
+      <path d="M0 380 Q200 300 420 370 T800 350 L800 600 L0 600Z" fill="#9b8fd9" opacity=".8"/>
+      <path d="M0 430 Q240 360 480 420 T800 400 L800 600 L0 600Z" fill="url(#${h1})"/>
+      <g transform="translate(540 330)">
+        <rect x="0" y="40" width="130" height="90" fill="#fff4e0"/>
+        <polygon points="-16,44 65,-14 146,44" fill="#d9605a"/>
+        <rect x="96" y="-8" width="16" height="34" fill="#8a5a44"/>
+        <rect x="52" y="80" width="28" height="50" rx="4" fill="#8a5a44"/>
+        <rect x="16" y="64" width="24" height="22" fill="#ffd98a"/><rect x="92" y="64" width="24" height="22" fill="#ffd98a"/>
+        <circle cx="104" cy="-22" r="10" fill="#fff" opacity=".6"/><circle cx="112" cy="-42" r="14" fill="#fff" opacity=".45"/><circle cx="124" cy="-68" r="18" fill="#fff" opacity=".3"/>
+      </g>
+      <path d="M0 500 Q260 450 520 500 T800 490 L800 600 L0 600Z" fill="#5fb06a"/>
+      <path d="M40 520 L760 500" stroke="#a0704a" stroke-width="5"/>
+      ${[60, 160, 260, 360, 460, 560, 660, 740].map((x) => `<rect x="${x}" y="${500 - (x / 800) * 20}" width="8" height="40" fill="#a0704a"/>`).join('')}
+      ${flowers}${flies}`);
+  }
+
+  function night() {
+    const R = rng(3), sky = uid('ns'), m = uid('nm');
+    return bgSvg(`<defs>${lin(sky, [[0, '#0b0926'], [0.55, '#3b1d6e'], [1, '#c45ab3']])}${rad(m, [[0, '#fff7e0'], [0.6, '#ffe7b0', 0.5], [1, '#ffe7b0', 0]])}</defs>
+      <rect width="800" height="600" fill="url(#${sky})"/>
+      ${starfield(R, 160, 420)}
+      <circle cx="610" cy="140" r="160" fill="url(#${m})"/>
+      <circle cx="610" cy="140" r="62" fill="#fff6dc"/>
+      <circle cx="590" cy="124" r="10" fill="#f1e2bb"/><circle cx="628" cy="160" r="7" fill="#f1e2bb"/>
+      <path d="M90 60 L230 120" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".8"/>
+      ${sparkle(90, 60, 8)}${sparkle(320, 90, 6, '#fff', 0.8)}${sparkle(470, 230, 5, '#fff', 0.7)}
+      <path d="M0 470 Q120 420 260 450 T520 440 T800 430 L800 600 L0 600Z" fill="#2a1546"/>
+      <path d="M210 470 L210 360 Q400 300 590 360 L590 470Z" fill="#1c0e33"/>
+      ${[0, 1, 2, 3, 4, 5, 6, 7].map((i) => `<path d="M${226 + i * 46} 470 L${226 + i * 46} 420 Q${244 + i * 46} 396 ${262 + i * 46} 420 L${262 + i * 46} 470Z" fill="#ffd98a" opacity=".22"/>`).join('')}
+      <path d="M0 520 Q200 480 400 510 T800 500 L800 600 L0 600Z" fill="#150a28"/>`);
+  }
+
+  function speedlines(color = '#fff', seed = 5) {
+    const R = rng(seed);
+    let s = '';
+    for (let i = 0; i < 70; i++) {
+      const a = (i / 70) * Math.PI * 2 + R() * 0.05, w = 0.01 + R() * 0.02, r0 = 160 + R() * 120;
+      const p = (ang, r) => `${(400 + Math.cos(ang) * r).toFixed(0)},${(300 + Math.sin(ang) * r).toFixed(0)}`;
+      s += `<polygon points="${p(a - w, 900)} ${p(a + w, 900)} ${p(a, r0)}" fill="${color}"/>`;
+    }
+    return svg(BG, s, 'speedlines', 'xMidYMid slice');
+  }
+
+  /* ---------------- icons ---------------- */
+  const icons = {
+    frost: `<svg viewBox="-24 -24 48 48"><g stroke="#e9fbff" stroke-width="3.5" stroke-linecap="round">${[0, 60, 120].map((a) => `<g transform="rotate(${a})"><path d="M0 -20 V20"/><path d="M-6 -15 L0 -10 L6 -15 M-6 15 L0 10 L6 15"/></g>`).join('')}</g><circle r="4" fill="#fff"/></svg>`,
+    fire: `<svg viewBox="-24 -24 48 48"><path d="M0 -22 C6 -10 18 -4 16 8 C14 18 6 22 0 22 C-8 22 -16 16 -16 6 C-16 -4 -8 -6 -6 -14 C-2 -8 0 -10 0 -22Z" fill="#ffe08a"/><path d="M0 -4 C4 2 9 6 7 12 C5 18 -5 18 -7 12 C-8 6 -2 4 0 -4Z" fill="#fff"/></svg>`,
+    heal: `<svg viewBox="-24 -24 48 48"><path d="M0 18 C-26 2 -18 -20 0 -8 C18 -20 26 2 0 18Z" fill="#eafff4"/><path d="M0 -6 V8 M-7 1 H7" stroke="#2bb673" stroke-width="4" stroke-linecap="round"/></svg>`,
+    barrier: `<svg viewBox="-24 -24 48 48"><path d="M0 -21 L18 -13 C18 6 10 16 0 21 C-10 16 -18 6 -18 -13Z" fill="#fde9ff" /><path d="M0 -13 L11 -8 C11 4 6 10 0 13Z" fill="#e58cff"/></svg>`,
+  };
+
+  return { lysa, grandma, headstealer, lion, archmage, city, arena, countryside, night, speedlines, icons, sparkle };
+})();
