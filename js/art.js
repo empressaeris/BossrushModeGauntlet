@@ -54,10 +54,10 @@ const Art = (() => {
       } else if (ex === 'hurt') {
         s += `<path d="M${out} ${Y - 9} L${inn + sd * 2} ${Y} L${out} ${Y + 9}" stroke="${ink}" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
       } else {
-        const h = o.narrow ? 19 : 28, top = Y - h / 2;
+        const h = o.eyeH || (o.narrow ? 19 : 28), top = Y - h / 2;
         s += `<ellipse cx="${cx}" cy="${Y}" rx="16" ry="${h / 2 + 1}" fill="#fff"/>
           <ellipse cx="${cx}" cy="${Y + 2}" rx="11.5" ry="${h / 2 - 0.5}" fill="url(#${gid})"/>
-          <ellipse cx="${cx}" cy="${Y + 3}" rx="5" ry="${Math.max(3, h / 2 - 6)}" fill="#1b1020" opacity=".85"/>
+          <ellipse cx="${cx}" cy="${Y + 3}" rx="${o.slit ? 2.4 : 5}" ry="${o.slit ? h / 2 - 2 : Math.max(3, h / 2 - 6)}" fill="#1b1020" opacity=".85"/>
           <circle cx="${cx - 4}" cy="${Y - 4}" r="${o.narrow ? 2.8 : 4}" fill="#fff"/>
           <circle cx="${cx + 4}" cy="${Y + 6}" r="1.8" fill="#fff" opacity=".85"/>`;
         const slant = ex === 'angry' ? 11 : ex === 'determined' ? 6 : 0;
@@ -80,8 +80,7 @@ const Art = (() => {
     return { eyes: s, brows };
   }
 
-  function mouth(expr) {
-    const c = '#6b2a3a';
+  function mouth(expr, c = '#6b2a3a') {
     switch (expr) {
       case 'happy':
       case 'smile':
@@ -106,7 +105,7 @@ const Art = (() => {
     o.skin = skin;
     const e = eyes(o);
     const blush = o.noBlush ? '' :
-      `<ellipse cx="110" cy="194" rx="13" ry="5.5" fill="#ff7f9a" opacity=".38"/><ellipse cx="190" cy="194" rx="13" ry="5.5" fill="#ff7f9a" opacity=".38"/>
+      `<ellipse cx="110" cy="194" rx="13" ry="5.5" fill="${o.blush || '#ff7f9a'}" opacity="${o.blush ? 0.55 : 0.38}"/><ellipse cx="190" cy="194" rx="13" ry="5.5" fill="${o.blush || '#ff7f9a'}" opacity="${o.blush ? 0.55 : 0.38}"/>
        <path d="M104 192 l4 -4 M110 192 l4 -4 M186 192 l4 -4 M192 192 l4 -4" stroke="#ff6f8c" stroke-width="1.2" opacity=".5"/>`;
     const under = `
       <path d="M134 214 L134 266 Q150 276 166 266 L166 214Z" fill="${shade}"/>
@@ -114,54 +113,82 @@ const Art = (() => {
       <path d="M100 168 C104 196 124 218 150 232 C128 212 112 192 104 160Z" fill="${shade}" opacity=".35"/>
       ${blush}
       <path d="M150 189 L147.5 196 L151 196" stroke="${shade}" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-      ${e.eyes}${o.mouth === false ? '' : mouth(o.mouthExpr || o.expr)}`;
+      ${e.eyes}${o.mouth === false ? '' : mouth(o.mouthExpr || o.expr, o.mouthCol)}`;
     return { under, brows: e.brows };
   }
 
   /* ---------------- characters ---------------- */
+  // long, swept-back elven ears (drawn behind the face)
+  function elfEars(skin, shade, line) {
+    const one = (m) => {
+      const X = (x) => (m ? 300 - x : x);
+      return `<path d="M${X(98)} 150 C${X(76)} 146 ${X(42)} 128 ${X(8)} 112 C${X(32)} 134 ${X(64)} 166 ${X(100)} 182Z" fill="${skin}" stroke="${line}" stroke-width="1.6" stroke-linejoin="round"/>
+        <path d="M${X(95)} 158 C${X(76)} 153 ${X(52)} 140 ${X(28)} 126 C${X(48)} 146 ${X(72)} 164 ${X(97)} 173Z" fill="${shade}"/>`;
+    };
+    return one(false) + one(true);
+  }
+
+  // gold circlet with a hanging gem, worn across the forehead
+  function circlet(gem) {
+    return `<path d="M88 124 Q150 98 212 124" stroke="#a97c1e" stroke-width="7" fill="none" stroke-linecap="round"/>
+      <path d="M88 124 Q150 98 212 124" stroke="#f0c75a" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M96 118 Q150 96 204 118" stroke="#fff3c4" stroke-width="1.2" fill="none"/>
+      <path d="M138 108 L162 108 L158 124 L150 132 L142 124Z" fill="#f0c75a" stroke="#a97c1e" stroke-width="1.6"/>
+      <circle cx="150" cy="118" r="4.5" fill="${gem}" stroke="#a97c1e" stroke-width="1"/>
+      <circle cx="148.5" cy="116.5" r="1.4" fill="#fff"/>`;
+  }
+
   function lysa(expr = 'neutral') {
-    const h = uid('lh'), c = uid('lc'), hl = uid('lhl');
-    const hd = head({ expr, iris: ['#4fd1c5', '#0f4c5c', '#d4fff8'], skin: '#ffe8d9', shade: '#f4c1ab' });
+    const h = uid('lh'), c = uid('lc');
+    const skin = '#8a5a45', shade = '#69412f', line = '#9d96bd';
+    const hd = head({ expr, eyeH: 24, iris: ['#9fd8cf', '#356a6c', '#effffc'], skin, shade, lash: '#160a10', blush: '#c4566a', mouthCol: '#3d1621' });
     return svg('0 0 300 360', `
-      <defs>${lin(h, [[0, '#a98bff'], [0.6, '#d79cff'], [1, '#ff9ccf']])}${lin(c, [[0, '#33449a'], [1, '#141a3d']])}${lin(hl, [[0, '#ffffff', 0.7], [1, '#ffffff', 0]])}</defs>
-      <path d="M84 130 C64 58 236 58 216 130 C240 210 248 300 234 360 L66 360 C52 300 60 210 84 130Z" fill="url(#${h})"/>
+      <defs>${lin(h, [[0, '#ffffff'], [0.55, '#eeeaf7'], [1, '#c9c2e2']])}${lin(c, [[0, '#33449a'], [1, '#141a3d']])}</defs>
+      <path d="M84 130 C64 58 236 58 216 130 C240 210 248 300 234 360 L66 360 C52 300 60 210 84 130Z" fill="url(#${h})" stroke="${line}" stroke-width="1.6"/>
+      <path d="M100 180 C96 240 98 300 92 360 M200 180 C204 240 202 300 208 360" stroke="#c9c2e2" stroke-width="2" fill="none"/>
       <path d="M48 360 C56 292 96 262 150 258 C204 262 244 292 252 360Z" fill="url(#${c})"/>
       <path d="M74 360 C80 318 96 296 110 286 M226 360 C220 318 204 296 190 286" stroke="#f2c65b" stroke-width="4" fill="none"/>
-      <path d="M124 258 L150 300 L176 258 Q150 272 124 258Z" fill="#fff4ea"/>
+      <path d="M124 258 L150 300 L176 258 Q150 272 124 258Z" fill="${shade}"/>
       <path d="M112 262 L150 320 L188 262 L178 258 L150 300 L122 258Z" fill="#f2c65b"/>
       <circle cx="150" cy="310" r="8.5" fill="#5ee0d6" stroke="#f2c65b" stroke-width="3"/>
       <circle cx="147" cy="307" r="2.5" fill="#fff"/>
+      ${elfEars(skin, shade, '#4a2a1e')}
       ${hd.under}
-      <path d="M90 128 C78 192 84 244 102 292 C104 252 108 204 110 150Z" fill="url(#${h})"/>
-      <path d="M210 128 C222 192 216 244 198 292 C196 252 192 204 190 150Z" fill="url(#${h})"/>
-      <path d="M86 150 C72 66 228 66 214 150 L203 116 L194 146 L180 106 L164 142 L150 100 L136 142 L120 106 L106 146 L97 116Z" fill="url(#${h})"/>
-      <path d="M104 98 Q150 80 196 98" stroke="url(#${hl})" stroke-width="7" fill="none" stroke-dasharray="16 7" stroke-linecap="round"/>
-      <path d="M150 80 C152 54 178 46 180 60 C170 56 160 62 155 82Z" fill="#a98bff"/>
+      <path d="M90 128 C78 192 84 244 102 292 C104 252 108 204 110 150Z" fill="url(#${h})" stroke="${line}" stroke-width="1.4"/>
+      <path d="M210 128 C222 192 216 244 198 292 C196 252 192 204 190 150Z" fill="url(#${h})" stroke="${line}" stroke-width="1.4"/>
+      <path d="M96 160 C92 200 94 240 100 276 M204 160 C208 200 206 240 200 276" stroke="#c9c2e2" stroke-width="1.4" fill="none"/>
+      <path d="M86 150 C72 66 228 66 214 150 L203 116 L194 148 L180 106 L164 144 L150 100 L136 144 L120 106 L106 148 L97 116Z" fill="url(#${h})" stroke="${line}" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M120 106 L114 132 M180 106 L186 132 M150 100 L150 124" stroke="#c9c2e2" stroke-width="1.6"/>
+      <path d="M150 80 C152 54 178 46 180 60 C170 56 160 62 155 82Z" fill="#f2eff9" stroke="${line}" stroke-width="1.4"/>
+      ${circlet('#5ee0d6')}
       ${hd.brows}
-      ${star(198, 110, 11, '#ffd85e', 'stroke="#e0a72e" stroke-width="1.5"')}
-      ${sparkle(212, 96, 5)}`, 'char lysa');
+      ${sparkle(222, 104, 6)}`, 'char lysa');
   }
 
   function grandma(expr = 'smirk') {
     const h = uid('gh'), sh = uid('gs'), gem = uid('gg');
-    const hd = head({ expr, mouthExpr: expr === 'neutral' ? 'smirk' : expr, narrow: true, iris: ['#b48cff', '#3e2470', '#efe2ff'], skin: '#f9e0cf', shade: '#e6b9a1', brow: '#9a9cb2' });
+    const skin = '#7f5240', shade = '#5f3a2b', line = '#8d91ab';
+    const hd = head({ expr, mouthExpr: expr === 'neutral' ? 'smirk' : expr, narrow: true, iris: ['#c9b6ff', '#4a3080', '#f3ecff'], skin, shade, brow: '#e4e5f0', browW: 3.5, lash: '#140a0e', blush: '#b44f62', mouthCol: '#33121c' });
     return svg('0 0 300 360', `
       <defs>${lin(h, [[0, '#f4f5fb'], [1, '#a7abc4']])}${lin(sh, [[0, '#8a4fb0'], [1, '#3d1f59']])}${lin(gem, [[0, '#ff9ad5'], [1, '#7a2cff']], 1, 1)}</defs>
-      <circle cx="150" cy="70" r="32" fill="url(#${h})"/>
+      <circle cx="150" cy="70" r="32" fill="url(#${h})" stroke="${line}" stroke-width="1.5"/>
       <path d="M132 46 L178 98" stroke="#c9a24a" stroke-width="4" stroke-linecap="round"/>
       <circle cx="132" cy="46" r="5" fill="#ff7fb5"/>
-      <path d="M86 140 C70 70 230 70 214 140 C222 180 216 210 204 226 L96 226 C84 210 78 180 86 140Z" fill="url(#${h})"/>
+      <path d="M86 140 C70 70 230 70 214 140 C222 180 216 210 204 226 L96 226 C84 210 78 180 86 140Z" fill="url(#${h})" stroke="${line}" stroke-width="1.5"/>
       <path d="M44 360 C54 292 96 262 150 258 C204 262 246 292 256 360Z" fill="url(#${sh})"/>
       <path d="M60 360 C70 320 90 300 108 290 L120 360Z M240 360 C230 320 210 300 192 290 L180 360Z" fill="#2b1840" opacity=".45"/>
+      ${elfEars(skin, shade, '#3e2219')}
+      <path d="M22 120 l-6 3 M278 120 l6 3" stroke="#f0c75a" stroke-width="4" stroke-linecap="round"/>
       ${hd.under}
       <path d="M116 236 Q150 262 184 236 L192 262 Q150 292 108 262Z" fill="#2a2238"/>
       <path d="M120 262 Q150 280 180 262" stroke="#4a3d60" stroke-width="2" fill="none"/>
-      <path d="M100 172 l-8 -3 M100 178 l-8 2 M200 172 l8 -3 M200 178 l8 2" stroke="#d8a790" stroke-width="1.5" stroke-linecap="round"/>
-      <path d="M88 146 C82 76 218 76 212 146 C204 112 182 98 150 104 C118 98 96 112 88 146Z" fill="url(#${h})"/>
+      <path d="M100 172 l-8 -3 M100 178 l-8 2 M200 172 l8 -3 M200 178 l8 2 M132 204 q-4 6 -2 12 M168 204 q4 6 2 12" stroke="#4e2e22" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+      <path d="M88 146 C82 76 218 76 212 146 C204 112 182 98 150 104 C118 98 96 112 88 146Z" fill="url(#${h})" stroke="${line}" stroke-width="1.5"/>
       <path d="M112 100 Q132 92 150 104 M188 100 Q168 92 150 104" stroke="#8d91ab" stroke-width="1.6" fill="none"/>
+      ${circlet('#ff7fb5')}
       ${hd.brows}
-      <circle cx="124" cy="167" r="21" fill="#dff3ff" fill-opacity=".18" stroke="#c9a24a" stroke-width="2.6"/>
-      <circle cx="176" cy="167" r="21" fill="#dff3ff" fill-opacity=".18" stroke="#c9a24a" stroke-width="2.6"/>
+      <circle cx="124" cy="167" r="21" fill="#dff3ff" fill-opacity=".14" stroke="#c9a24a" stroke-width="2.6"/>
+      <circle cx="176" cy="167" r="21" fill="#dff3ff" fill-opacity=".14" stroke="#c9a24a" stroke-width="2.6"/>
       <path d="M145 165 Q150 160 155 165" stroke="#c9a24a" stroke-width="2.6" fill="none"/>
       <path d="M112 158 l8 -6" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".8"/>
       <path d="M164 158 l8 -6" stroke="#fff" stroke-width="2.5" stroke-linecap="round" opacity=".8"/>
@@ -172,6 +199,106 @@ const Art = (() => {
       ${sparkle(258, 276, 7)}${sparkle(214, 330, 5)}`, 'char grandma');
   }
 
+  function minotaur(expr = 'angry') {
+    const f = uid('mf'), hn = uid('mh'), bd = uid('mb'), g = uid('mg');
+    const hurt = expr === 'hurt';
+    const back = (sd) => {   // horn and ear, drawn behind the head
+      const x = (v) => 150 + sd * v;
+      return `<path d="M${x(46)} 100 C${x(80)} 96 ${x(112)} 74 ${x(108)} 30 C${x(126)} 62 ${x(118)} 112 ${x(54)} 126Z" fill="url(#${hn})" stroke="#8a7a5a" stroke-width="2"/>
+        <path d="M${x(72)} 104 l5 -9 M${x(88)} 95 l4 -10 M${x(100)} 80 l3 -10" stroke="#b8a77e" stroke-width="2"/>
+        <path d="M${x(48)} 130 L${x(88)} 124 L${x(80)} 142 L${x(50)} 148Z" fill="url(#${f})" stroke="#2a140a" stroke-width="2"/>
+        <path d="M${x(54)} 134 L${x(78)} 130 L${x(74)} 139Z" fill="#c98f80"/>`;
+    };
+    const front = (sd) => {  // eye, brow and nostril steam
+      const x = (v) => 150 + sd * v;
+      if (hurt) return `<path d="M${x(42)} 138 L${x(16)} 148 L${x(42)} 158" stroke="#1a0a06" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+      return `<polygon points="${x(44)},138 ${x(14)},148 ${x(18)},158 ${x(42)},152" fill="#ff3b3b" filter="url(#${g})"/>
+        <circle cx="${x(30)}" cy="149" r="2.2" fill="#fff"/>
+        <path d="M${x(54)} 128 L${x(12)} 142" stroke="#1e0e07" stroke-width="7" stroke-linecap="round"/>
+        <g fill="#fff"><circle cx="${x(52)}" cy="224" r="7" opacity=".7"/><circle cx="${x(68)}" cy="234" r="10" opacity=".55"/><circle cx="${x(88)}" cy="244" r="13" opacity=".4"/></g>`;
+    };
+    return svg('0 0 300 360', `
+      <defs>${lin(f, [[0, '#7a4a32'], [1, '#4a2a1a']])}${lin(hn, [[0, '#fff8e6'], [1, '#cdb88a']])}${lin(bd, [[0, '#6e4130'], [1, '#2e1810']])}${glow(g, 3)}</defs>
+      <path d="M12 360 C22 266 90 234 150 234 C210 234 278 266 288 360Z" fill="url(#${bd})"/>
+      <path d="M110 300 Q150 320 150 360 M190 300 Q150 320 150 360" stroke="#1e0e07" stroke-width="3" fill="none" opacity=".6"/>
+      <path d="M40 290 L270 360" stroke="#4a2a14" stroke-width="18"/>
+      ${[80, 130, 180, 230].map((x) => `<circle cx="${x}" cy="${(290 + (x - 40) * 0.304).toFixed(0)}" r="4" fill="#d9c27a"/>`).join('')}
+      <path d="M16 338 C24 282 66 262 104 268 L100 302 C72 298 44 312 32 344Z" fill="#7d8494" stroke="#3e434d" stroke-width="3"/>
+      <path d="M40 300 L30 278 L52 292Z M66 284 L62 260 L80 280Z" fill="#c6ccd8" stroke="#3e434d" stroke-width="2"/>
+      ${back(-1)}${back(1)}
+      <path d="M100 100 C100 66 200 66 200 100 C208 150 198 190 184 216 L116 216 C102 190 92 150 100 100Z" fill="url(#${f})"/>
+      <path d="M118 78 L132 108 L140 82 L150 112 L160 82 L168 108 L182 78 Q150 58 118 78Z" fill="#2a160c"/>
+      <path d="M102 198 C102 166 198 166 198 198 C198 238 174 252 150 252 C126 252 102 238 102 198Z" fill="#b9876a"/>
+      <ellipse cx="130" cy="206" rx="9" ry="6" fill="#2a120a"/><ellipse cx="170" cy="206" rx="9" ry="6" fill="#2a120a"/>
+      <circle cx="150" cy="224" r="13" fill="none" stroke="#a97c1e" stroke-width="7"/>
+      <circle cx="150" cy="224" r="13" fill="none" stroke="#f2c65b" stroke-width="4"/>
+      <path d="M122 242 Q150 ${hurt ? 236 : 250} 178 242" stroke="#2a120a" stroke-width="3" fill="none" stroke-linecap="round"/>
+      ${front(-1)}${front(1)}
+      ${hurt ? '' : `<path d="M58 70 l14 12 M48 92 l18 4 M242 70 l-14 12 M252 92 l-18 4" stroke="#ff4d4d" stroke-width="4" stroke-linecap="round"/>`}`, 'char minotaur');
+  }
+
+  function lamia(expr = 'smirk') {
+    const h = uid('lmh'), sc = uid('lms'), top = uid('lmt');
+    const skin = '#f1dccb', shade = '#d4ad98';
+    const hd = head({ expr, slit: true, eyeH: 24, iris: ['#ffd34d', '#8a5a00', '#fff6c4'], skin, shade, lash: '#12261f', brow: '#1d5a4c' });
+    let scales = '';
+    for (let x = 14; x < 300; x += 22) scales += `<path d="M${x} ${344 - Math.sin(x / 40) * 10} q11 -10 22 0" stroke="#1f6b45" stroke-width="2" fill="none" opacity=".7"/>`;
+    return svg('0 0 300 360', `
+      <defs>${lin(h, [[0, '#3fc4a3'], [1, '#125454']])}${lin(sc, [[0, '#4cc27a'], [1, '#1d6b45']])}${lin(top, [[0, '#6b3a9a'], [1, '#341a52']])}</defs>
+      <path d="M84 130 C60 56 240 56 216 130 C246 190 226 232 250 270 C228 282 246 320 228 352 L72 352 C54 320 72 282 50 270 C74 232 54 190 84 130Z" fill="url(#${h})"/>
+      <path d="M262 334 C304 292 298 214 256 204 C232 200 226 226 244 234" stroke="url(#${sc})" stroke-width="22" fill="none" stroke-linecap="round"/>
+      <path d="M244 234 C236 236 232 232 236 226" stroke="#1d6b45" stroke-width="6" fill="none" stroke-linecap="round"/>
+      <path d="M58 360 C64 302 102 266 150 262 C198 266 236 302 242 360Z" fill="${skin}"/>
+      <path d="M80 360 C86 320 108 300 150 300 C192 300 214 320 220 360Z" fill="url(#${top})"/>
+      <path d="M86 340 Q150 316 214 340" stroke="#f2c65b" stroke-width="3" fill="none"/>
+      <path d="M110 268 Q150 296 190 268" stroke="#f2c65b" stroke-width="4" fill="none"/>
+      <polygon points="150,286 160,296 150,310 140,296" fill="#4cc27a" stroke="#f2c65b" stroke-width="2.5"/>
+      ${hd.under}
+      <path d="M90 128 C70 190 92 236 76 290 C96 260 104 214 110 150Z M210 128 C230 190 208 236 224 290 C204 260 196 214 190 150Z" fill="url(#${h})"/>
+      <path d="M86 150 C72 66 228 66 214 150 C206 130 196 118 182 112 C186 128 180 142 168 150 C170 132 162 116 150 108 C138 116 130 132 132 150 C120 142 114 128 118 112 C104 118 94 130 86 150Z" fill="url(#${h})"/>
+      <path d="M90 122 Q150 100 210 122" stroke="#f2c65b" stroke-width="4" fill="none"/>
+      <path d="M150 92 C162 92 166 104 150 116 C134 104 138 92 150 92Z" fill="#f2c65b" stroke="#a97c1e" stroke-width="1.5"/>
+      <circle cx="145" cy="100" r="2" fill="#e0245e"/><circle cx="155" cy="100" r="2" fill="#e0245e"/>
+      ${hd.brows}
+      <path d="M0 360 C6 322 56 302 106 316 C148 328 162 352 204 344 C244 336 270 312 300 320 L300 360Z" fill="url(#${sc})"/>
+      <path d="M0 360 C20 340 60 330 100 338 C140 346 170 360 200 356 C240 350 270 336 300 340 L300 360Z" fill="#d9e8a8" opacity=".85"/>
+      ${scales}
+      ${sparkle(46, 120, 6, '#b8ffe0')}${sparkle(256, 160, 5, '#b8ffe0')}`, 'char lamia');
+  }
+
+  function griffin(expr = 'angry') {
+    const w = uid('gw'), hd = uid('gh'), bk = uid('gb'), bd = uid('gbd');
+    const hurt = expr === 'hurt';
+    const wing = (sd) => {
+      const x = (v) => 150 + sd * v;
+      let s = `<path d="M${x(40)} 250 C${x(80)} 190 ${x(120)} 120 ${x(150)} 40 C${x(150)} 90 ${x(146)} 110 ${x(140)} 120 C${x(152)} 130 ${x(150)} 150 ${x(140)} 166 C${x(150)} 176 ${x(146)} 196 ${x(134)} 210 C${x(140)} 222 ${x(132)} 240 ${x(118)} 250Z" fill="url(#${w})" stroke="#6b4a1e" stroke-width="2"/>`;
+      for (const [a, b] of [[118, 132], [116, 170], [106, 206]]) s += `<path d="M${x(a - 46)} ${b + 56} Q${x(a - 14)} ${b + 20} ${x(a + 8)} ${b}" stroke="#8a6a2e" stroke-width="2" fill="none"/>`;
+      return s;
+    };
+    const eye = (sd) => {
+      const x = (v) => 150 + sd * v;
+      return hurt
+        ? `<path d="M${x(46)} 140 L${x(22)} 150 L${x(46)} 160" stroke="#2a1508" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`
+        : `<path d="M${x(50)} 150 Q${x(34)} 136 ${x(18)} 148 Q${x(34)} 162 ${x(50)} 150Z" fill="#ffb320" stroke="#2a1508" stroke-width="3"/>
+           <circle cx="${x(33)}" cy="149" r="5" fill="#1b1020"/><circle cx="${x(31)}" cy="146" r="2" fill="#fff"/>
+           <path d="M${x(60)} 128 Q${x(36)} 128 ${x(12)} 144" stroke="#5a3a14" stroke-width="7" fill="none" stroke-linecap="round"/>`;
+    };
+    let ruff = '';
+    for (let x = 80; x <= 220; x += 20) ruff += `<path d="M${x - 14} 250 Q${x} 290 ${x + 14} 250Z" fill="#fff8ec" stroke="#d9c7a0" stroke-width="1.5"/>`;
+    return svg('0 0 300 360', `
+      <defs>${lin(w, [[0, '#f2d38a'], [1, '#a8782e']])}${lin(hd, [[0, '#ffffff'], [0.7, '#f6ead2'], [1, '#e0c58f']])}${lin(bk, [[0, '#ffe08a'], [1, '#d99a20']])}${lin(bd, [[0, '#e2ad6c'], [1, '#a8702e']])}</defs>
+      ${wing(-1)}${wing(1)}
+      <path d="M36 360 C46 290 98 256 150 256 C202 256 254 290 264 360Z" fill="url(#${bd})"/>
+      ${ruff}
+      <path d="M150 52 L140 80 L128 58 L124 88 L108 72 L112 100 L150 92 L188 100 L192 72 L176 88 L172 58 L160 80Z" fill="#e0c58f" stroke="#b89a5a" stroke-width="1.5"/>
+      <path d="M100 150 C96 96 126 80 150 80 C174 80 204 96 200 150 C198 196 184 226 150 248 C116 226 102 196 100 150Z" fill="url(#${hd})" stroke="#d9c7a0" stroke-width="1.5"/>
+      ${eye(-1)}${eye(1)}
+      <path d="M128 166 C128 146 172 146 172 166 C174 196 164 218 152 236 C150 228 144 222 138 220 C130 204 126 186 128 166Z" fill="url(#${bk})" stroke="#8a5a10" stroke-width="2.5"/>
+      <path d="M136 172 q4 -3 8 0 M156 172 q4 -3 8 0" stroke="#8a5a10" stroke-width="2" fill="none"/>
+      <path d="M134 198 Q150 ${hurt ? 200 : 208} 168 196" stroke="#8a5a10" stroke-width="2" fill="none"/>
+      ${hurt ? '' : `<path d="M56 64 l14 12 M44 88 l18 4 M244 64 l-14 12 M256 88 l-18 4" stroke="#ff4d4d" stroke-width="4" stroke-linecap="round"/>`}
+      ${sparkle(30, 200, 6, '#fff6d0')}${sparkle(272, 220, 6, '#fff6d0')}`, 'char griffin');
+  }
   function headstealer(expr = 'angry') {
     const h = uid('hh'), g = uid('hg'), w = uid('hw');
     const eyeOp = expr === 'hurt' ? 0.45 : 1;
@@ -416,5 +543,5 @@ const Art = (() => {
     barrier: `<svg viewBox="-24 -24 48 48"><path d="M0 -21 L18 -13 C18 6 10 16 0 21 C-10 16 -18 6 -18 -13Z" fill="#fde9ff" /><path d="M0 -13 L11 -8 C11 4 6 10 0 13Z" fill="#e58cff"/></svg>`,
   };
 
-  return { lysa, grandma, headstealer, lion, archmage, city, arena, countryside, night, speedlines, icons, sparkle };
+  return { lysa, grandma, headstealer, lion, minotaur, lamia, griffin, archmage, city, arena, countryside, night, speedlines, icons, sparkle };
 })();

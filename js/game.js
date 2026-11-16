@@ -10,6 +10,9 @@
     grandma: { name: 'Grandmama', art: Art.grandma },
     headstealer: { name: 'The Headstealer', art: Art.headstealer },
     lion: { name: 'Mountain Lion', art: Art.lion },
+    minotaur: { name: 'The Minotaur', art: Art.minotaur },
+    lamia: { name: 'The Lamia', art: Art.lamia },
+    griffin: { name: 'The Griffin', art: Art.griffin },
     archmage: { name: 'The Archmage', art: Art.archmage },
   };
 
@@ -25,7 +28,7 @@
     { id: 'fire', name: 'Fireball', key: '2', cost: 20, cd: 900, dmg: 12, element: 'fire',
       desc: 'Deals 12 fire damage.' },
     { id: 'heal', name: 'Heal', key: '3', cost: 30, cd: 4000, amount: 25,
-      desc: 'Restores 25 HP. 4s cooldown.' },
+      desc: 'Restores 25 HP and cures poison. 4s cooldown.' },
     { id: 'barrier', name: 'Barrier', key: '4', cost: 25, cd: 7000, duration: 5000, reduce: 0.6,
       desc: 'Blocks 60% of damage for 5s. 7s cooldown.' },
   ];
@@ -34,7 +37,7 @@
     {
       id: 'headstealer', title: 'Collector of Faces', maxHP: 120, weak: null, resist: null,
       interval: 2800, dmg: 9, attacks: ['Dagger Flurry', 'Shadow Step', 'Cutpurse Slash'],
-      special: { every: 3, name: 'Pickpocket', charge: 2600, dmg: 5, type: 'drain', steal: 30 },
+      special: { every: 3, name: 'Pickpocket', charge: 2600, dmg: 5, type: 'drain', steal: 30, warn: "It's after your MP!" },
       intro: "That face... that hair... You smell just like the old thief who robbed me blind.",
       winQuote: "I should've KNOWN you were strong. You look just like her...",
       loseQuote: "Finally, I beat that little thief! Oh wait... she didn't use magic. Are you someone else?",
@@ -48,9 +51,33 @@
       loseQuote: '*growls triumphantly*',
     },
     {
-      id: 'archmage', title: 'Master of the Arena', maxHP: 280, weak: 'ice', resist: 'fire',
+      id: 'minotaur', title: 'Bull of the Labyrinth', maxHP: 260, weak: 'ice', resist: 'fire',
+      interval: 3200, dmg: 14, attacks: ['Horn Gore', 'Hammer Fist', 'Stomp'],
+      special: { every: 4, name: 'Earthshaker Charge', charge: 3600, dmg: 32, type: 'nuke', warn: 'Raise a Barrier!' },
+      intro: '*SNORT* Little elf. I will grind you into the arena sand!',
+      winQuote: 'Hrrng... Your grandmother once stole my nose ring, you know. You fight with the same cheek.',
+      loseQuote: 'HA! Run home, little elf. The labyrinth has no room for the weak!',
+    },
+    {
+      id: 'lamia', title: 'Serpent of the Sunken Baths', maxHP: 230, weak: 'fire', resist: 'ice',
+      interval: 2300, dmg: 9, attacks: ['Tail Lash', 'Constrict', 'Hypnotic Sway'],
+      special: { every: 3, name: 'Venom Fang', charge: 2600, dmg: 6, type: 'poison', dps: 4, duration: 6000, warn: 'Heal cures poison!' },
+      intro: 'Ssso sweet... A little elf has wandered into my coils.',
+      winQuote: 'Hisss... Fine. Run along, darling. And tell your grandmother I want my emerald back.',
+      loseQuote: 'Rest now, little one. My coils are ever so... comfortable.',
+    },
+    {
+      id: 'griffin', title: 'Sovereign of the Skies', maxHP: 220, weak: 'fire', resist: 'ice',
+      interval: 1900, dmg: 8, attacks: ['Talon Rake', 'Wing Buffet', 'Beak Strike'],
+      special: { every: 4, name: 'Gale Dive', charge: 3000, dmg: 28, type: 'nuke', warn: 'Raise a Barrier!' },
+      intro: '*SCREEEE!* The griffin circles the arena, its wings blotting out the sun.',
+      winQuote: '*The griffin lands, lowers its head to Lysa, and lets out a soft, respectful trill.*',
+      loseQuote: '*SCREEE!* (It sounds very smug about this.)',
+    },
+    {
+      id: 'archmage', title: 'Master of the Arena', maxHP: 300, weak: 'ice', resist: 'fire',
       interval: 3000, dmg: 12, attacks: ['Flame Lance', 'Ember Rain', 'Searing Ray'],
-      special: { every: 3, name: 'Inferno Cataclysm', charge: 4500, dmg: 38, type: 'nuke' },
+      special: { every: 3, name: 'Inferno Cataclysm', charge: 4500, dmg: 38, type: 'nuke', warn: 'Raise a Barrier!' },
       intro: "So you're the one who made it this far. Let's see whose magic runs in your veins.",
       winQuote: "I'm glad you've won. When you see your grandmother, tell her I'm proud of you.",
       loseQuote: "You should be so much stronger, Lysa! I knew I should've trained you, but your grandmother was greedy!",
@@ -62,7 +89,7 @@
     { bg: 'city', who: 'grandma', expr: 'smirk', side: 'right', text: 'Ohoho~ The relic was simply sitting there, dear. It practically asked to come home with me.' },
     { bg: 'city', text: "Unfortunately, Grandmama had stolen a rather valuable relic from the city's richest family. The fine was substantial, and the jail time even more so." },
     { bg: 'arena', who: 'lysa', expr: 'determined', side: 'left', text: "Then I'll enter the Havenwood Gauntlet. The grand prize will pay her fine, and leave our family wealthy for generations to come!" },
-    { bg: 'arena', text: 'Three champions stand between Lysa and the prize. One after another, with no turning back.' },
+    { bg: 'arena', text: 'Six champions stand between Lysa and the prize. One after another, with no turning back.' },
   ];
 
   const ENDING = [
@@ -137,7 +164,7 @@
       <div class="title-block">
         <div class="kicker">✦ Boss Rush Mode ✦</div>
         <h1 class="logo">Havenwood<span>Gauntlet</span></h1>
-        <p class="tagline">Three champions. Four spells. One grandmother's freedom.</p>
+        <p class="tagline">Six champions. Four spells. One grandmother's freedom.</p>
         <button class="btn primary" data-act="start">Start Game</button>
         <p class="hint">Click, tap, or press Enter</p>
       </div>`, 'title');
@@ -363,6 +390,17 @@
 
   function update(dt) {
     B.mp = Math.min(PLAYER.maxMP, B.mp + (PLAYER.mpRegen * dt) / 1000);
+    if (B.poison) {
+      if (B.t >= B.poison.until) {
+        B.poison = null;
+      } else {
+        const d = (B.poison.dps * dt) / 1000;
+        B.php = Math.max(0, B.php - d);
+        B.poison.acc += d;
+        if (B.poison.acc >= 4) { popup(rand(70, 130), 470, `-${Math.round(B.poison.acc)}`, 'poison'); B.poison.acc = 0; }
+        if (B.php <= 0) { lose(); return; }
+      }
+    }
     if (B.charge && B.t >= B.charge.end) bossAttack();
   }
 
@@ -384,8 +422,7 @@
     B.dom.tgLabel.textContent = special ? `⚠ ${name}` : name;
     if (special) {
       Sound.sfx('warn');
-      if (type === 'nuke') banner(`${name}!<br><span>Raise a Barrier!</span>`, 'warn');
-      else banner(`${name}!<br><span>It's after your MP!</span>`, 'warn');
+      banner(`${name}!<br><span>${b.special.warn}</span>`, 'warn');
     }
   }
 
@@ -405,6 +442,12 @@
       log(`${CAST[b.id].name} uses ${c.name}! Stole ${stolen} MP!`);
     }
 
+    if (c.type === 'poison') {
+      B.poison = { until: B.t + b.special.duration, dps: b.special.dps, acc: 0 };
+      log(`${CAST[b.id].name} uses ${c.name}! Lysa is poisoned! Heal to cure it.`);
+      burst(95, 505, 10, 'venom', 60);
+    }
+
     B.php = Math.max(0, B.php - dmg);
     popup(rand(60, 140), 450, shielded ? `${dmg} BLOCKED` : `-${dmg}`, shielded ? 'blocked' : 'hurt');
     slash(c.type === 'nuke');
@@ -414,7 +457,7 @@
       shake(false); Sound.sfx(shielded ? 'blocked' : 'hit');
     }
     if (shielded) burst(95, 505, 10, 'shard', 60);
-    if (c.type !== 'drain') log(`${CAST[b.id].name} uses ${c.name}! ${shielded ? 'The barrier absorbs most of it. ' : ''}-${dmg} HP`);
+    if (c.type !== 'drain' && c.type !== 'poison') log(`${CAST[b.id].name} uses ${c.name}! ${shielded ? 'The barrier absorbs most of it. ' : ''}-${dmg} HP`);
     setPose('player', 'hurt', 450);
 
     if (B.php <= 0) { lose(); return; }
@@ -460,10 +503,12 @@
       const before = b.php;
       b.php = Math.min(PLAYER.maxHP, b.php + spell.amount);
       run.healed += b.php - before;
+      const cured = !!b.poison;
+      b.poison = null;
       popup(110, 450, `+${Math.round(b.php - before)}`, 'heal');
       burst(95, 510, 14, 'plus', 70);
       setPose('player', 'happy', 600);
-      log(`Lysa heals for ${Math.round(b.php - before)} HP!`);
+      log(`Lysa heals for ${Math.round(b.php - before)} HP!${cured ? ' The poison is cured!' : ''}`);
     } else if (spell.id === 'barrier') {
       Sound.sfx('barrier');
       b.barrierUntil = b.t + spell.duration;
@@ -510,7 +555,8 @@
 
     const shield = b.t < b.barrierUntil;
     d.pframe.classList.toggle('shielded', shield);
-    d.status.textContent = shield ? `Barrier ${((b.barrierUntil - b.t) / 1000).toFixed(1)}s` : '';
+    d.pframe.classList.toggle('poisoned', !!b.poison);
+    d.status.textContent = [shield ? `Barrier ${Math.ceil((b.barrierUntil - b.t) / 1000)}s` : '', b.poison ? 'Poison' : ''].filter(Boolean).join(' · ');
 
     SPELLS.forEach((s, k) => {
       const btn = d.spells[k];
@@ -568,7 +614,8 @@
     const boss = BOSSES[i];
     const lines = [{ bg: 'arena', who: boss.id, expr: 'hurt', side: 'right', text: boss.winQuote }];
     if (i < BOSSES.length - 1) {
-      lines.push({ bg: 'arena', who: 'lysa', expr: 'happy', side: 'left', text: 'One down! I can do this...' });
+      const cheers = ['One down! I can do this...', 'Two down. Grandmama, I hope you\'re watching!', "Halfway there! Don't let up now, Lysa.", 'Just a little further... I can feel it.', 'Only one champion left. Here we go.'];
+      lines.push({ bg: 'arena', who: 'lysa', expr: 'happy', side: 'left', text: cheers[i] || 'Another one down!' });
       lines.push({ bg: 'arena', text: `Lysa catches her breath. HP and MP fully restored! Up next: ${CAST[BOSSES[i + 1].id].name}.` });
       dialogue(lines, () => versus(i + 1));
     } else {
