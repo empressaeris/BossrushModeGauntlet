@@ -37,7 +37,7 @@ There's no build step and nothing to install.
 
 ## What changed from the original
 
-- **New art direction:** Lysa and her grandmother are dark elves, with silver hair, long ears and gold circlets. Lysa wears eyeshadow, winged eyeliner and rose lipstick, with a high-collared tunic and gold shoulder guards. Every character, background and icon is original anime-style vector art drawn in code (`js/art.js`). There are no image files and no public-domain illustrations.
+- **New art direction:** Lysa and her grandmother are dark elves, with silver hair, long ears and gold circlets. Lysa wears dramatic cat-eye makeup (a triangular wing, long lashes, slit pupils) and rose lipstick, with a high-collared tunic and gold shoulder guards. Every character, background and icon is original anime-style vector art drawn in code (`js/art.js`). There are no image files and no public-domain illustrations.
 - **Original music and sound effects:** they're synthesized live with the Web Audio API (`js/audio.js`), so there are no audio files.
 - **Battle system:**
   - The boss's next attack is announced ahead of time.

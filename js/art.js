@@ -75,6 +75,43 @@ const Art = (() => {
         `<path d="M${X(dx)} ${top + dy + slant * 0.5} q${(sd * ex2 * 0.4).toFixed(1)} ${ey * 0.6} ${(sd * ex2).toFixed(1)} ${ey}" stroke="${ink}" stroke-width="1.2" fill="none" stroke-linecap="round"/>`).join('')}`;
   }
 
+  // Dramatic cat-eye: big almond eye, triangular winged liner, long tapered
+  // lashes, lid crease, outlined iris with a slit pupil and one round highlight.
+  function catEye(o, cx, sd, Y, ink, ex, gid) {
+    const X = (dx) => (cx + sd * dx).toFixed(1); // dx > 0 points toward the outer corner
+    const lash = (bx, by, len, lean) =>
+      `<path d="M${X(bx - 1.4)} ${by + 1} L${X(bx + lean)} ${by - len} L${X(bx + 1.6)} ${by + 1}Z" fill="${ink}"/>`;
+    if (ex === 'happy') {
+      let s = `<path d="M${X(-18)} ${Y + 2} C${X(-8)} ${Y - 6} ${X(8)} ${Y - 8} ${X(20)} ${Y - 2}" stroke="${o.shadow}" stroke-width="10" opacity=".55" fill="none" stroke-linecap="round"/>
+        <path d="M${X(-18)} ${Y + 3} C${X(-8)} ${Y - 7} ${X(8)} ${Y - 8} ${X(20)} ${Y - 2} L${X(27)} ${Y - 22} L${X(9)} ${Y - 4} C${X(0)} ${Y - 4} ${X(-10)} ${Y - 3} ${X(-16)} ${Y + 4}Z" fill="${ink}"/>`;
+      for (const [dx, len, lean] of [[-8, 8, 3], [-2, 10, 4], [4, 11, 5], [10, 11, 6]]) s += lash(dx, Y - 5 - (dx > 0 ? 1 : 0), len, dx + lean);
+      return s;
+    }
+    const h = o.eyeH || 28;
+    const slant = ex === 'angry' ? 9 : ex === 'determined' ? 5 : 0;
+    const top = Y - h / 2;
+    const up = `M${X(-19)} ${Y + 4} C${X(-11)} ${top - 2 + slant} ${X(10)} ${top - 4 + slant * 0.4} ${X(21)} ${Y - 7}`;
+    const low = `C${X(16)} ${Y + h / 2 + 2} ${X(-6)} ${Y + h / 2 + 4} ${X(-19)} ${Y + 4}`;
+    const clip = uid('ce');
+    const lidY = (dx) => top - 2 + slant * (dx < 0 ? 0.75 : 0.35) + 0.022 * (dx - 1) * (dx - 1);
+    let s = `<clipPath id="${clip}"><path d="${up} ${low}Z"/></clipPath>
+      <path d="M${X(-16)} ${top - 1} C${X(-6)} ${top - 15} ${X(16)} ${top - 15} ${X(30)} ${Y - 30} L${X(22)} ${Y - 6}Z" fill="${o.shadow}" opacity=".6"/>
+      <path d="M${X(-15)} ${top - 4 + slant * 0.6} C${X(-6)} ${top - 12 + slant * 0.5} ${X(10)} ${top - 13 + slant * 0.3} ${X(23)} ${Y - 14}" stroke="${ink}" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+      <path d="${up} ${low}Z" fill="#fff"/>
+      <g clip-path="url(#${clip})">
+        <ellipse cx="${X(0)}" cy="${Y + 0.5}" rx="12.5" ry="${h / 2 + 3.5}" fill="url(#${gid})" stroke="${ink}" stroke-width="2"/>
+        <path d="M${X(-11)} ${Y - 3} Q${X(-6)} ${Y + 3} ${X(4)} ${Y - 1}" stroke="${ink}" stroke-width="1.3" fill="none" opacity=".55"/>
+        <path d="M${X(1)} ${top + 1} Q${X(-4.5)} ${Y + 2} ${X(0)} ${Y + h / 2 + 3} Q${X(5.5)} ${Y + 2} ${X(1)} ${top + 1}Z" fill="${ink}"/>
+        <circle cx="${X(-6)}" cy="${Y - 1}" r="4" fill="#f6eeee" stroke="${ink}" stroke-width="1.4"/>
+        <path d="M${X(-19)} ${top - 4} L${X(22)} ${top - 4} L${X(22)} ${top + 5} L${X(-19)} ${top + 5}Z" fill="${ink}" opacity=".15"/>
+      </g>
+      <path d="M${X(21)} ${Y - 7} ${low}" stroke="${ink}" stroke-width="1.3" fill="none" stroke-linecap="round"/>
+      <path d="${up} L${X(30)} ${Y - 34} L${X(8)} ${top + 3 + slant * 0.4} C${X(-5)} ${top + 4 + slant * 0.6} ${X(-13)} ${Y} ${X(-17)} ${Y + 4.5}Z" fill="${ink}"/>
+      <path d="M${X(18)} ${Y + 2} l${(sd * 5).toFixed(1)} 3 M${X(14)} ${Y + 7} l${(sd * 4).toFixed(1)} 4.5" stroke="${ink}" stroke-width="1.3" stroke-linecap="round"/>`;
+    for (const [dx, len, lean] of [[-11, 7, 0], [-6, 10, 1], [-1, 12, 2], [4, 13, 4], [9, 13, 5], [14, 11, 6]]) s += lash(dx, lidY(dx), len, dx + lean);
+    return s;
+  }
+
   function eyes(o) {
     const Y = 166, ink = o.lash || '#2a1730';
     const gid = uid('iris');
@@ -88,6 +125,8 @@ const Art = (() => {
         if (o.shadow) s += `<ellipse cx="${cx + sd * 2}" cy="${Y - 8}" rx="20" ry="8" fill="${o.shadow}" opacity=".7"/>`;
         s += `<path d="M${cx - 15} ${Y + 4} Q${cx} ${Y - 14} ${cx + 15} ${Y + 4}" stroke="${ink}" stroke-width="4.5" fill="none" stroke-linecap="round"/>`;
         if (o.wing) s += `<path d="M${cx + sd * 15} ${Y + 4} L${cx + sd * 25} ${Y - 4}" stroke="${ink}" stroke-width="3.5" stroke-linecap="round"/>`;
+      } else if (o.cat && ex !== 'hurt') {
+        s += catEye(o, cx, sd, Y, ink, ex, gid);
       } else if (o.fox && ex !== 'hurt') {
         s += foxEye(o, cx, sd, Y, ink, ex, gid);
       } else if (ex === 'hurt') {
@@ -201,8 +240,8 @@ const Art = (() => {
     const h = uid('lh'), c = uid('lc'), t = uid('lt'), gd = uid('lgd');
     const skin = '#8a5a45', shade = '#69412f', line = '#9d96bd';
     const hd = head({
-      expr, eyeH: 22, iris: ['#9fd8cf', '#356a6c', '#effffc'], skin, shade,
-      lash: '#12070c', fox: true, shadow: '#6a3a5c',
+      expr, eyeH: 27, iris: ['#9fd8cf', '#356a6c', '#effffc'], skin, shade,
+      lash: '#12070c', cat: true, shadow: '#6a3a5c',
       lips: '#d9617f', mouthCol: '#5a1a2e', blush: '#c4566a', softBlush: true,
       brow: '#eeecf6', browW: 2.6,
     });
